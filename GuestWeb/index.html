@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#07080d">
+  <meta name="description" content="DJ Toolkit – Live DJ Companion, Musikwünsche per QR-Code, BPM- und Key-Analyse.">
+  <title>DJ Toolkit</title>
+  <link rel="icon" href="/djtoolkit-icon.png">
+  <link rel="apple-touch-icon" href="/djtoolkit-icon.png">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg:#06070b;
+      --panel:rgba(18,22,36,.72);
+      --line:rgba(255,255,255,.09);
+      --text:#f7f8ff;
+      --muted:#9aa1b7;
+      --blue:#25a7ff;
+      --violet:#985cff;
+      --green:#4be39a;
+      font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text",Inter,system-ui,sans-serif;
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;min-height:100%;background:var(--bg);color:var(--text)}
+    body{
+      min-height:100vh;
+      background:
+        radial-gradient(circle at 12% 5%,rgba(37,167,255,.22),transparent 34rem),
+        radial-gradient(circle at 88% 16%,rgba(152,92,255,.24),transparent 32rem),
+        linear-gradient(180deg,#0a0c14,#06070b 70%);
+    }
+    .noise{
+      position:fixed;inset:0;pointer-events:none;opacity:.18;
+      background-image:
+        linear-gradient(rgba(255,255,255,.018) 1px,transparent 1px),
+        linear-gradient(90deg,rgba(255,255,255,.018) 1px,transparent 1px);
+      background-size:30px 30px;
+      mask-image:linear-gradient(to bottom,#000,transparent 85%);
+    }
+    main{width:min(1120px,calc(100% - 34px));margin:auto;padding:34px 0 64px}
+    nav{display:flex;align-items:center;justify-content:space-between;gap:18px;margin-bottom:70px}
+    .brand{display:flex;align-items:center;gap:12px;font-weight:800;letter-spacing:.02em}
+    .brand img{width:42px;height:42px;border-radius:12px;box-shadow:0 0 34px rgba(110,82,255,.28)}
+    .pill{border:1px solid var(--line);background:rgba(255,255,255,.045);border-radius:999px;padding:9px 13px;color:var(--muted);font-size:13px}
+    .hero{display:grid;grid-template-columns:1.1fr .9fr;gap:48px;align-items:center}
+    .eyebrow{display:inline-flex;align-items:center;gap:8px;color:#dce9ff;font-size:13px;font-weight:700;letter-spacing:.12em;text-transform:uppercase}
+    .dot{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 16px var(--green)}
+    h1{font-size:clamp(48px,8vw,92px);line-height:.93;letter-spacing:-.06em;margin:18px 0 22px}
+    .gradient{background:linear-gradient(100deg,var(--blue),#6f8dff 46%,#c055ff);-webkit-background-clip:text;background-clip:text;color:transparent}
+    .lead{font-size:clamp(18px,2.4vw,24px);line-height:1.5;color:#b8bfd3;max-width:720px}
+    .actions{display:flex;flex-wrap:wrap;gap:12px;margin-top:30px}
+    .button{display:inline-flex;align-items:center;justify-content:center;padding:15px 20px;border-radius:16px;text-decoration:none;font-weight:750}
+    .primary{color:white;background:linear-gradient(100deg,#168cff,#8b5cff);box-shadow:0 16px 50px rgba(64,113,255,.24)}
+    .secondary{color:white;border:1px solid var(--line);background:rgba(255,255,255,.04)}
+    .card{
+      border:1px solid var(--line);
+      background:linear-gradient(150deg,rgba(28,34,55,.86),rgba(12,15,27,.72));
+      box-shadow:0 30px 110px rgba(0,0,0,.48);
+      backdrop-filter:blur(24px);
+      border-radius:32px;padding:25px;overflow:hidden;position:relative
+    }
+    .card::before{content:"";position:absolute;inset:-1px;background:linear-gradient(120deg,rgba(37,167,255,.28),transparent 35%,transparent 62%,rgba(152,92,255,.28));z-index:-1;border-radius:32px}
+    .wave{height:150px;display:flex;align-items:center;gap:4px;margin:24px 0}
+    .bar{flex:1;border-radius:4px;background:linear-gradient(180deg,#3db8ff,#835dff 58%,#c04fff);opacity:.92}
+    .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+    .stat{padding:16px;border:1px solid var(--line);background:rgba(255,255,255,.035);border-radius:18px}
+    .stat b{display:block;font-size:25px;margin-bottom:3px}
+    .stat span{font-size:12px;color:var(--muted)}
+    .features{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:58px}
+    .feature{padding:22px;border:1px solid var(--line);background:rgba(255,255,255,.035);border-radius:22px}
+    .feature b{display:block;margin-bottom:8px}
+    .feature p{margin:0;color:var(--muted);line-height:1.5}
+    footer{color:#767d91;margin-top:48px;font-size:13px}
+    @media(max-width:800px){
+      main{padding-top:22px}
+      nav{margin-bottom:44px}
+      .hero{grid-template-columns:1fr;gap:30px}
+      .features{grid-template-columns:1fr}
+      .pill{display:none}
+    }
+  </style>
+</head>
+<body>
+<div class="noise"></div>
+<main>
+  <nav>
+    <div class="brand">
+      <img src="/djtoolkit-icon.png" alt="">
+      <div>DJ TOOLKIT</div>
+    </div>
+    <div class="pill">ANALYZE · MIX · PERFORM</div>
+  </nav>
+
+  <section class="hero">
+    <div>
+      <div class="eyebrow"><span class="dot"></span> CDJ Companion</div>
+      <h1>Dein Set.<br><span class="gradient">Smarter gemixt.</span></h1>
+      <p class="lead">
+        DJ Toolkit hört über das iPhone-Mikrofon mit, erkennt BPM, Key und Camelot
+        und verbindet Live-Analyse mit Musikwünschen deiner Gäste – ganz ohne App für das Publikum.
+      </p>
+      <div class="actions">
+        <a class="button primary" href="/request.html?event=demo&name=DJ%20Toolkit%20Demo">Musikwunsch-Demo öffnen</a>
+        <a class="button secondary" href="/health">Serverstatus</a>
+      </div>
+    </div>
+
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px">
+        <div>
+          <div style="font-size:12px;color:var(--muted);letter-spacing:.11em">LIVE MASTER</div>
+          <div style="font-size:26px;font-weight:800;margin-top:4px">CDJ Live Listening</div>
+        </div>
+        <div class="pill" style="display:block;color:#d7fbe9">● LIVE</div>
+      </div>
+
+      <div class="wave" id="wave"></div>
+
+      <div class="stats">
+        <div class="stat"><b>128.0</b><span>BPM</span></div>
+        <div class="stat"><b style="color:#b46cff">8A</b><span>CAMELOT</span></div>
+        <div class="stat"><b>8.2</b><span>ENERGY</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="features">
+    <div class="feature"><b>Live BPM + Key</b><p>Analyse über das Mikrofon – keine Verbindung zum CDJ erforderlich.</p></div>
+    <div class="feature"><b>Guest Requests</b><p>QR-Code scannen, Song auswählen und Wunsch direkt an den DJ senden.</p></div>
+    <div class="feature"><b>Smart Mix Assistant</b><p>Camelot, BPM und Energy helfen dabei, passende Wünsche für den nächsten Mix zu finden.</p></div>
+  </section>
+
+  <footer>© DJ Toolkit · dj-toolkit.com</footer>
+</main>
+<script>
+  const wave = document.getElementById("wave");
+  const heights = [18,32,45,68,82,52,37,76,96,62,44,72,88,54,35,66,92,78,41,58,84,100,73,49,64,91,70,43,61,80,54,32,47,73,89,59,39,65,82,50,28,45,70,55];
+  heights.forEach((h,i)=>{
+    const bar=document.createElement("div");
+    bar.className="bar";
+    bar.style.height=h+"%";
+    bar.style.opacity=(.55 + (i/heights.length)*.42).toFixed(2);
+    wave.appendChild(bar);
+  });
+</script>
+</body>
+</html>
