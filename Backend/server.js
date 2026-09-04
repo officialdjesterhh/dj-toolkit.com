@@ -234,6 +234,7 @@ app.post("/api/events/:eventID/requests", (req, res) => {
     requestCatalogID: String(req.body.catalogID || "").trim().slice(0, 80) || null,
     requestArtworkURL: cleanURL(req.body.catalogArtworkURL),
     requestStoreURL: cleanURL(req.body.catalogStoreURL),
+    requestPreviewURL: cleanURL(req.body.catalogPreviewURL),
     requestAlbum: String(req.body.catalogAlbum || "").trim().slice(0, 180) || null
   };
 
@@ -288,7 +289,7 @@ app.patch("/api/requests/:requestID", (req, res) => {
     "catalogMatchTitle", "catalogMatchArtist", "catalogMatchURL",
     "libraryMatchTitle", "libraryMatchArtist", "libraryPersistentID",
     "autoAnalysisError", "analysisSource", "requestCatalogID", "requestArtworkURL",
-    "requestStoreURL", "requestAlbum"
+    "requestStoreURL", "requestPreviewURL", "requestAlbum"
   ];
 
   for (const key of optionalStrings) {
