@@ -439,12 +439,44 @@ app.get("/health", (_, res) => {
   res.set("Cache-Control", "no-store");
   res.json({
     ok: true,
-    version: "7.9",
+    version: "8.0",
     onlineAnalysis: true,
     catalogPreviewAudio: true,
     djMetadata: true,
     djMetadataProviders: process.env.GETSONGBPM_API_KEY ? ["Beatport", "GetSongBPM"] : ["Beatport"]
   });
+});
+
+app.get("/api/events/recent", (req, res) => {
+  const rows = readStore();
+  const grouped = new Map();
+
+  for (const row of rows) {
+    if (!row.eventID) continue;
+    const createdAt = row.createdAt || new Date(0).toISOString();
+    const current = grouped.get(row.eventID);
+    if (!current) {
+      grouped.set(row.eventID, {
+        id: row.eventID,
+        name: row.eventName || null,
+        lastRequestAt: createdAt,
+        requestCount: 1
+      });
+      continue;
+    }
+
+    current.requestCount += 1;
+    if (!current.name && row.eventName) current.name = row.eventName;
+    if (new Date(createdAt) > new Date(current.lastRequestAt)) {
+      current.lastRequestAt = createdAt;
+    }
+  }
+
+  res.json(
+    [...grouped.values()]
+      .sort((a, b) => new Date(b.lastRequestAt) - new Date(a.lastRequestAt))
+      .slice(0, 20)
+  );
 });
 
 app.get("/api/events/:eventID/requests", (req, res) => {
@@ -515,6 +547,7 @@ app.post("/api/events/:eventID/requests", (req, res) => {
   const row = {
     id: crypto.randomUUID(),
     eventID: req.params.eventID,
+    eventName: String(req.body.eventName || "").trim().slice(0, 120) || null,
     artist: artist.slice(0, 120),
     title: title.slice(0, 120),
     guestName: String(req.body.guestName || "").trim().slice(0, 80) || null,
