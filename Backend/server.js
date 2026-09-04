@@ -113,6 +113,7 @@ app.get("/api/catalog-search", async (req, res) => {
         album: item.collectionName ? String(item.collectionName).slice(0, 180) : null,
         artworkURL: enhancedArtworkURL(item.artworkUrl100),
         storeURL: cleanURL(item.trackViewUrl),
+        previewURL: cleanURL(item.previewUrl),
         explicit: item.trackExplicitness === "explicit",
         durationMillis: Number.isFinite(Number(item.trackTimeMillis)) ? Number(item.trackTimeMillis) : null
       }))
@@ -228,6 +229,8 @@ app.post("/api/events/:eventID/requests", (req, res) => {
     autoAnalysisState: null,
     autoAnalysisAttemptedAt: null,
     autoAnalysisError: null,
+    analysisSource: null,
+    onlineAnalysisAttemptedAt: null,
     requestCatalogID: String(req.body.catalogID || "").trim().slice(0, 80) || null,
     requestArtworkURL: cleanURL(req.body.catalogArtworkURL),
     requestStoreURL: cleanURL(req.body.catalogStoreURL),
@@ -284,7 +287,7 @@ app.patch("/api/requests/:requestID", (req, res) => {
   const optionalStrings = [
     "catalogMatchTitle", "catalogMatchArtist", "catalogMatchURL",
     "libraryMatchTitle", "libraryMatchArtist", "libraryPersistentID",
-    "autoAnalysisError", "requestCatalogID", "requestArtworkURL",
+    "autoAnalysisError", "analysisSource", "requestCatalogID", "requestArtworkURL",
     "requestStoreURL", "requestAlbum"
   ];
 
@@ -301,6 +304,7 @@ app.patch("/api/requests/:requestID", (req, res) => {
   }
 
   const allowedAutoStates = new Set([
+    "onlineSearching", "onlineAnalyzing", "onlineAnalyzed", "onlineUnavailable",
     "searching", "catalogMatched", "catalogOnly", "analyzing", "analyzed",
     "audioUnavailable", "noMatch", "permissionRequired", "failed"
   ]);
@@ -313,6 +317,10 @@ app.patch("/api/requests/:requestID", (req, res) => {
 
   if (Object.prototype.hasOwnProperty.call(req.body, "autoAnalysisAttemptedAt")) {
     next.autoAnalysisAttemptedAt = req.body.autoAnalysisAttemptedAt || null;
+  }
+
+  if (Object.prototype.hasOwnProperty.call(req.body, "onlineAnalysisAttemptedAt")) {
+    next.onlineAnalysisAttemptedAt = req.body.onlineAnalysisAttemptedAt || null;
   }
 
   rows[index] = next;
