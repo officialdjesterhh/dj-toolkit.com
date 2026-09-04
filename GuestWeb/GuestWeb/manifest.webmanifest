@@ -1,0 +1,15 @@
+{
+  "name": "DJ Toolkit Guest Requests",
+  "short_name": "DJ Request",
+  "start_url": "/request.html",
+  "display": "standalone",
+  "background_color": "#07080d",
+  "theme_color": "#090b12",
+  "icons": [
+    {
+      "src": "/djtoolkit-icon.png",
+      "sizes": "1024x1024",
+      "type": "image/png"
+    }
+  ]
+}
