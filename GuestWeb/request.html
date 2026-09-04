@@ -1,0 +1,1061 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#090b12">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="description" content="Musikwunsch direkt an den DJ senden – ohne App und ohne Login.">
+  <title>Musikwunsch · DJ Toolkit</title>
+  <link rel="icon" href="/djtoolkit-icon.png">
+  <link rel="apple-touch-icon" href="/djtoolkit-icon.png">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #07080d;
+      --surface: rgba(18, 21, 34, .76);
+      --surface-strong: rgba(23, 27, 43, .92);
+      --line: rgba(255, 255, 255, .085);
+      --text: #f7f8ff;
+      --muted: #979db3;
+      --blue: #30a8ff;
+      --violet: #8b5cff;
+      --purple: #c14cff;
+      --green: #4ee59a;
+      --red: #ff637c;
+      --shadow: 0 24px 90px rgba(0, 0, 0, .46);
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", Inter, system-ui, sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    html { min-height: 100%; background: var(--bg); }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 12% 0%, rgba(48, 168, 255, .18), transparent 34rem),
+        radial-gradient(circle at 88% 18%, rgba(139, 92, 255, .20), transparent 30rem),
+        radial-gradient(circle at 48% 100%, rgba(193, 76, 255, .10), transparent 36rem),
+        linear-gradient(180deg, #090b12 0%, #07080d 64%, #05060a 100%);
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      opacity: .24;
+      background-image:
+        linear-gradient(rgba(255,255,255,.018) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.018) 1px, transparent 1px);
+      background-size: 30px 30px;
+      mask-image: linear-gradient(to bottom, black, transparent 82%);
+    }
+
+    button, input, textarea { font: inherit; }
+    button { -webkit-tap-highlight-color: transparent; }
+
+    .page {
+      width: min(100% - 30px, 520px);
+      margin: 0 auto;
+      padding: max(22px, env(safe-area-inset-top)) 0 max(34px, env(safe-area-inset-bottom));
+      position: relative;
+      z-index: 1;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      margin: 4px 2px 30px;
+    }
+
+    .brand img {
+      width: 42px;
+      height: 42px;
+      border-radius: 12px;
+      box-shadow: 0 0 26px rgba(88, 109, 255, .25);
+    }
+
+    .brand-title { font-size: 14px; font-weight: 820; letter-spacing: .05em; }
+    .brand-sub { margin-top: 2px; color: var(--muted); font-size: 10px; font-weight: 680; letter-spacing: .16em; }
+
+    .event-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 11px;
+      border-radius: 999px;
+      border: 1px solid rgba(98, 135, 255, .22);
+      background: rgba(70, 95, 170, .10);
+      color: #cbd6ff;
+      font-size: 12px;
+      font-weight: 700;
+      max-width: 100%;
+    }
+
+    .pulse {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 0 0 rgba(78, 229, 154, .55);
+      animation: pulse 2s infinite;
+      flex: 0 0 auto;
+    }
+
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 0 rgba(78, 229, 154, .45); }
+      65% { box-shadow: 0 0 0 8px rgba(78, 229, 154, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(78, 229, 154, 0); }
+    }
+
+    h1 {
+      margin: 18px 0 10px;
+      font-size: clamp(39px, 11vw, 58px);
+      line-height: .98;
+      letter-spacing: -.055em;
+      font-weight: 860;
+    }
+
+    .gradient-text {
+      background: linear-gradient(105deg, #ffffff 0%, #d8e7ff 34%, #9eb7ff 63%, #b999ff 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+
+    .lead {
+      margin: 0 0 24px;
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1.55;
+      max-width: 45ch;
+    }
+
+    .micro-info {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      margin: 0 0 17px;
+      color: #aeb5c8;
+      font-size: 12px;
+    }
+
+    .micro-info span {
+      padding: 7px 9px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.045);
+      border: 1px solid var(--line);
+    }
+
+    .card {
+      position: relative;
+      overflow: hidden;
+      padding: 20px;
+      border-radius: 28px;
+      background:
+        linear-gradient(155deg, rgba(255,255,255,.075), rgba(255,255,255,.025)),
+        var(--surface);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(24px) saturate(130%);
+      -webkit-backdrop-filter: blur(24px) saturate(130%);
+    }
+
+    .card::before {
+      content: "";
+      position: absolute;
+      inset: 0 0 auto 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(65, 160, 255, .56), rgba(163, 86, 255, .48), transparent);
+    }
+
+    .section-label {
+      color: #a9b0c4;
+      font-size: 11px;
+      font-weight: 760;
+      letter-spacing: .13em;
+      text-transform: uppercase;
+      margin-bottom: 13px;
+    }
+
+    .field { margin-top: 13px; }
+    .field:first-of-type { margin-top: 0; }
+
+    label {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin: 0 2px 7px;
+      color: #b9bfd0;
+      font-size: 12px;
+      font-weight: 650;
+    }
+
+    label small { color: #6f7588; font-weight: 550; }
+
+    .input-wrap { position: relative; }
+
+    input, textarea {
+      width: 100%;
+      appearance: none;
+      border: 1px solid rgba(255,255,255,.075);
+      outline: none;
+      color: var(--text);
+      background: rgba(3, 5, 11, .42);
+      border-radius: 17px;
+      padding: 15px 16px;
+      transition: border-color .18s ease, box-shadow .18s ease, background .18s ease;
+    }
+
+    input::placeholder, textarea::placeholder { color: #60677a; }
+
+    input:focus, textarea:focus {
+      border-color: rgba(73, 158, 255, .60);
+      box-shadow: 0 0 0 4px rgba(48, 168, 255, .08), 0 0 28px rgba(102, 82, 255, .09);
+      background: rgba(9, 12, 22, .64);
+    }
+
+    textarea { min-height: 92px; resize: vertical; line-height: 1.45; }
+
+    .search-icon {
+      position: absolute;
+      right: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #696f84;
+      pointer-events: none;
+    }
+
+    .input-with-icon { padding-right: 44px; }
+
+    .popular {
+      display: none;
+      margin: 18px 0 0;
+    }
+
+    .popular.visible { display: block; }
+
+    .chips {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding-bottom: 3px;
+      scrollbar-width: none;
+    }
+
+    .chips::-webkit-scrollbar { display: none; }
+
+    .song-chip {
+      white-space: nowrap;
+      border: 1px solid rgba(255,255,255,.08);
+      background: rgba(255,255,255,.045);
+      color: #cdd2df;
+      border-radius: 999px;
+      padding: 9px 11px;
+      font-size: 11px;
+      cursor: pointer;
+    }
+
+    .catalog-search {
+      position: relative;
+      margin-bottom: 18px;
+    }
+
+    .catalog-search .search-box {
+      position: relative;
+    }
+
+    .catalog-search input {
+      min-height: 54px;
+      padding-left: 46px;
+      padding-right: 44px;
+      font-size: 15px;
+      font-weight: 680;
+      background: rgba(5, 8, 17, .68);
+      border-color: rgba(77, 145, 255, .18);
+    }
+
+    .catalog-search .leading-icon {
+      position: absolute;
+      left: 16px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #7ea9ff;
+      font-size: 18px;
+      pointer-events: none;
+    }
+
+    .search-clear {
+      position: absolute;
+      right: 11px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 32px;
+      height: 32px;
+      border: 0;
+      border-radius: 50%;
+      color: #8991a8;
+      background: rgba(255,255,255,.06);
+      cursor: pointer;
+      display: none;
+    }
+
+    .search-clear.visible { display: grid; place-items: center; }
+
+    .search-hint {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      margin: 8px 2px 0;
+      color: #686f83;
+      font-size: 10px;
+      line-height: 1.4;
+    }
+
+    .search-results {
+      display: none;
+      margin-top: 9px;
+      padding: 6px;
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 20px;
+      background: rgba(11, 14, 24, .96);
+      box-shadow: 0 18px 50px rgba(0,0,0,.46);
+      max-height: 380px;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+    }
+
+    .search-results.visible { display: block; }
+
+    .search-state {
+      padding: 17px 14px;
+      color: #878ea3;
+      text-align: center;
+      font-size: 12px;
+    }
+
+    .search-result {
+      width: 100%;
+      display: grid;
+      grid-template-columns: 54px minmax(0, 1fr) auto;
+      gap: 11px;
+      align-items: center;
+      border: 0;
+      border-radius: 15px;
+      padding: 8px;
+      color: inherit;
+      background: transparent;
+      text-align: left;
+      cursor: pointer;
+      transition: background .15s ease, transform .15s ease;
+    }
+
+    .search-result + .search-result { margin-top: 2px; }
+    .search-result:hover, .search-result:focus-visible { background: rgba(255,255,255,.055); outline: none; }
+    .search-result:active { transform: scale(.99); }
+
+    .result-artwork {
+      width: 54px;
+      height: 54px;
+      border-radius: 12px;
+      object-fit: cover;
+      background: linear-gradient(135deg, rgba(48,168,255,.2), rgba(139,92,255,.22));
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.08);
+    }
+
+    .result-copy { min-width: 0; }
+    .result-title { font-size: 13px; font-weight: 780; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .result-artist { margin-top: 3px; color: #9da4b8; font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .result-album { margin-top: 3px; color: #626a80; font-size: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .result-arrow { color: #68718a; font-size: 15px; padding: 0 5px; }
+
+    .selected-song {
+      display: none;
+      grid-template-columns: 62px minmax(0,1fr) auto;
+      gap: 13px;
+      align-items: center;
+      margin: 0 0 17px;
+      padding: 11px;
+      border-radius: 18px;
+      border: 1px solid rgba(77, 145, 255, .18);
+      background: linear-gradient(135deg, rgba(48,168,255,.075), rgba(139,92,255,.07));
+    }
+
+    .selected-song.visible { display: grid; }
+    .selected-song img { width: 62px; height: 62px; border-radius: 13px; object-fit: cover; background: rgba(255,255,255,.05); }
+    .selected-title { font-size: 14px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .selected-artist { margin-top: 3px; color: #a5acc0; font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .selected-meta { margin-top: 5px; color: #676f84; font-size: 9px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    .selected-remove {
+      width: 34px;
+      height: 34px;
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 50%;
+      background: rgba(255,255,255,.04);
+      color: #9ca3b7;
+      cursor: pointer;
+    }
+
+    .manual-divider {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 15px 0 12px;
+      color: #565d70;
+      font-size: 9px;
+      font-weight: 750;
+      letter-spacing: .10em;
+      text-transform: uppercase;
+    }
+
+    .manual-divider::before, .manual-divider::after {
+      content: "";
+      height: 1px;
+      flex: 1;
+      background: rgba(255,255,255,.06);
+    }
+
+    .submit {
+      width: 100%;
+      border: 0;
+      border-radius: 18px;
+      padding: 16px 18px;
+      margin-top: 20px;
+      color: white;
+      font-weight: 830;
+      letter-spacing: -.01em;
+      cursor: pointer;
+      background: linear-gradient(105deg, #178eea, #675cff 56%, #a14cff);
+      box-shadow: 0 13px 34px rgba(86, 77, 255, .26), inset 0 1px rgba(255,255,255,.25);
+      transition: transform .16s ease, filter .16s ease, opacity .16s ease;
+    }
+
+    .submit:active { transform: scale(.985); }
+    .submit:hover { filter: brightness(1.06); }
+    .submit:disabled { opacity: .52; cursor: wait; filter: saturate(.6); }
+
+    .submit-inner { display: inline-flex; align-items: center; gap: 9px; }
+
+    .spinner {
+      width: 15px;
+      height: 15px;
+      border: 2px solid rgba(255,255,255,.28);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+      display: none;
+    }
+
+    .is-loading .spinner { display: inline-block; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .privacy {
+      margin: 15px 3px 0;
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      color: #73798c;
+      font-size: 10px;
+      line-height: 1.45;
+    }
+
+    .status-message {
+      min-height: 18px;
+      margin: 12px 0 0;
+      text-align: center;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .status-message.error { color: #ff9bab; }
+
+    .success-card {
+      display: none;
+      text-align: center;
+      padding: 28px 22px;
+    }
+
+    .success-card.visible { display: block; }
+    .request-card.hidden { display: none; }
+
+    .success-mark {
+      width: 72px;
+      height: 72px;
+      margin: 0 auto 17px;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      background: radial-gradient(circle at 30% 20%, #5df5b0, #1db77a);
+      color: #04271a;
+      font-size: 31px;
+      font-weight: 900;
+      box-shadow: 0 0 38px rgba(78,229,154,.24);
+    }
+
+    .success-card h2 {
+      margin: 0;
+      font-size: 28px;
+      letter-spacing: -.035em;
+    }
+
+    .success-card p {
+      margin: 9px auto 19px;
+      color: var(--muted);
+      line-height: 1.5;
+      max-width: 34ch;
+    }
+
+    .submitted-track {
+      margin: 18px 0;
+      padding: 15px;
+      text-align: left;
+      border-radius: 18px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,.035);
+    }
+
+    .submitted-track .title { font-weight: 760; }
+    .submitted-track .artist { color: var(--muted); font-size: 12px; margin-top: 3px; }
+
+    .status-pill {
+      display: inline-flex;
+      gap: 7px;
+      align-items: center;
+      margin-top: 4px;
+      padding: 8px 10px;
+      border-radius: 999px;
+      background: rgba(49,168,255,.09);
+      border: 1px solid rgba(49,168,255,.18);
+      color: #b8dcff;
+      font-size: 11px;
+      font-weight: 720;
+    }
+
+    .secondary-button {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 17px;
+      padding: 14px 16px;
+      color: #d5d8e5;
+      background: rgba(255,255,255,.04);
+      font-weight: 720;
+      cursor: pointer;
+    }
+
+    .footer {
+      margin: 22px 2px 0;
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      color: #5e6476;
+      font-size: 10px;
+    }
+
+    .footer strong { color: #7c8397; font-weight: 700; }
+
+    .invalid {
+      display: none;
+      padding: 22px;
+      border-radius: 24px;
+      border: 1px solid rgba(255,99,124,.18);
+      background: rgba(255,99,124,.06);
+      color: #ffb4c0;
+      line-height: 1.5;
+    }
+
+    .invalid.visible { display: block; }
+
+    .honeypot {
+      position: absolute !important;
+      left: -10000px !important;
+      width: 1px !important;
+      height: 1px !important;
+      opacity: 0 !important;
+      pointer-events: none !important;
+    }
+
+    @media (min-width: 760px) {
+      .page { padding-top: 46px; }
+      .card { padding: 24px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header class="brand">
+      <img src="/djtoolkit-icon.png" alt="DJ Toolkit">
+      <div>
+        <div class="brand-title">DJ TOOLKIT</div>
+        <div class="brand-sub">GUEST REQUESTS</div>
+      </div>
+    </header>
+
+    <section id="intro">
+      <div class="event-chip"><span class="pulse"></span><span id="eventName">Live Event</span></div>
+      <h1><span class="gradient-text">Dein Song.</span><br>Dein Wunsch.</h1>
+      <p class="lead">Schick deinen Musikwunsch direkt an den DJ. Kein Download, kein Account – einfach eintragen und absenden.</p>
+      <div class="micro-info">
+        <span>✓ Keine App nötig</span>
+        <span id="requestCount">Live verbunden</span>
+      </div>
+    </section>
+
+    <div id="invalidEvent" class="invalid">
+      Dieser QR-Code enthält keine gültige Event-ID. Bitte scanne den QR-Code des DJs erneut.
+    </div>
+
+    <form id="requestForm" class="card request-card" novalidate>
+      <div class="section-label">Musikwunsch</div>
+
+      <div class="catalog-search">
+        <label for="catalogSearch">Song suchen <small>Empfohlen</small></label>
+        <div class="search-box">
+          <span class="leading-icon">⌕</span>
+          <input id="catalogSearch" autocomplete="off" inputmode="search" placeholder="Song oder Artist eingeben …" aria-autocomplete="list" aria-controls="searchResults">
+          <button id="searchClear" class="search-clear" type="button" aria-label="Suche löschen">×</button>
+        </div>
+        <div class="search-hint"><span>Tippe mindestens 2 Zeichen</span><span>Cover + Artist automatisch</span></div>
+        <div id="searchResults" class="search-results" role="listbox" aria-label="Songvorschläge"></div>
+      </div>
+
+      <div id="selectedSong" class="selected-song">
+        <img id="selectedArtwork" alt="Cover">
+        <div style="min-width:0">
+          <div id="selectedTitle" class="selected-title">—</div>
+          <div id="selectedArtist" class="selected-artist">—</div>
+          <div id="selectedMeta" class="selected-meta">Katalogtreffer</div>
+        </div>
+        <button id="selectedRemove" class="selected-remove" type="button" aria-label="Auswahl entfernen">×</button>
+      </div>
+
+      <div class="manual-divider">oder manuell eingeben</div>
+
+      <div class="field">
+        <label for="title">Song <small>Pflichtfeld</small></label>
+        <div class="input-wrap">
+          <input class="input-with-icon" id="title" name="title" maxlength="120" required autocomplete="off" placeholder="z. B. Losing It">
+          <span class="search-icon">⌕</span>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="artist">Artist <small>Pflichtfeld</small></label>
+        <input id="artist" name="artist" maxlength="120" required autocomplete="off" placeholder="z. B. FISHER">
+      </div>
+
+      <div id="popular" class="popular">
+        <label>Beliebt bei diesem Event</label>
+        <div id="popularChips" class="chips"></div>
+      </div>
+
+      <div class="field">
+        <label for="guestName">Dein Name <small>Optional</small></label>
+        <input id="guestName" name="guestName" maxlength="80" autocomplete="name" placeholder="z. B. Sebastian">
+      </div>
+
+      <div class="field">
+        <label for="message">Nachricht an den DJ <small>Optional</small></label>
+        <textarea id="message" name="message" maxlength="300" placeholder="Geburtstag, Widmung oder einfach ein kurzer Gruß …"></textarea>
+      </div>
+
+      <input type="hidden" id="catalogID" name="catalogID">
+      <input type="hidden" id="catalogArtworkURL" name="catalogArtworkURL">
+      <input type="hidden" id="catalogStoreURL" name="catalogStoreURL">
+      <input type="hidden" id="catalogAlbum" name="catalogAlbum">
+
+      <div class="honeypot" aria-hidden="true">
+        <label for="website">Website</label>
+        <input id="website" name="website" tabindex="-1" autocomplete="off">
+      </div>
+
+      <button id="submitButton" class="submit" type="submit">
+        <span class="submit-inner"><span class="spinner"></span><span id="submitText">Musikwunsch senden</span><span>↗</span></span>
+      </button>
+      <div id="statusMessage" class="status-message" role="status" aria-live="polite"></div>
+
+      <div class="privacy">🔒 <span>Dein Name ist optional. Gastdaten werden nicht öffentlich auf dieser Seite angezeigt. Ob und wann ein Wunsch gespielt wird, entscheidet der DJ.</span></div>
+    </form>
+
+    <section id="successCard" class="card success-card" aria-live="polite">
+      <div class="success-mark">✓</div>
+      <h2>Wunsch angekommen.</h2>
+      <p>Dein Song ist jetzt in der Request Queue des DJs.</p>
+      <div class="submitted-track">
+        <div id="successTitle" class="title">—</div>
+        <div id="successArtist" class="artist">—</div>
+      </div>
+      <div id="requestStatus" class="status-pill"><span class="pulse"></span><span>Eingegangen</span></div>
+      <p style="font-size:11px;margin-top:14px">Der Status wird automatisch aktualisiert, solange diese Seite geöffnet bleibt.</p>
+      <button id="anotherButton" class="secondary-button" type="button">Noch einen Wunsch senden</button>
+    </section>
+
+    <footer class="footer">
+      <span>Powered by <strong>DJ Toolkit</strong></span>
+      <span>Request responsibly ♫</span>
+    </footer>
+  </main>
+
+<script>
+(() => {
+  const params = new URLSearchParams(location.search);
+  const eventID = params.get("event");
+  const eventName = params.get("name") || "Live Event";
+
+  const form = document.getElementById("requestForm");
+  const button = document.getElementById("submitButton");
+  const submitText = document.getElementById("submitText");
+  const statusMessage = document.getElementById("statusMessage");
+  const invalid = document.getElementById("invalidEvent");
+  const successCard = document.getElementById("successCard");
+  const anotherButton = document.getElementById("anotherButton");
+  const popular = document.getElementById("popular");
+  const popularChips = document.getElementById("popularChips");
+  const requestCount = document.getElementById("requestCount");
+  const catalogSearch = document.getElementById("catalogSearch");
+  const searchResults = document.getElementById("searchResults");
+  const searchClear = document.getElementById("searchClear");
+  const selectedSong = document.getElementById("selectedSong");
+  const selectedArtwork = document.getElementById("selectedArtwork");
+  const selectedTitle = document.getElementById("selectedTitle");
+  const selectedArtist = document.getElementById("selectedArtist");
+  const selectedMeta = document.getElementById("selectedMeta");
+  const selectedRemove = document.getElementById("selectedRemove");
+  let catalogAbort = null;
+  let catalogTimer = null;
+  let selectedCatalog = null;
+
+  document.getElementById("eventName").textContent = eventName;
+  document.title = `${eventName} · Musikwunsch`;
+
+  if (!eventID) {
+    invalid.classList.add("visible");
+    form.classList.add("hidden");
+    return;
+  }
+
+  function setLoading(isLoading) {
+    button.disabled = isLoading;
+    button.classList.toggle("is-loading", isLoading);
+    submitText.textContent = isLoading ? "Wird gesendet …" : "Musikwunsch senden";
+  }
+
+  function normalize(value) {
+    return String(value || "").trim();
+  }
+
+  function showError(message) {
+    statusMessage.textContent = message;
+    statusMessage.classList.add("error");
+  }
+
+  function clearStatus() {
+    statusMessage.textContent = "";
+    statusMessage.classList.remove("error");
+  }
+
+  async function loadPublicSummary() {
+    try {
+      const response = await fetch(`/api/events/${encodeURIComponent(eventID)}/public-summary`, { cache: "no-store" });
+      if (!response.ok) return;
+      const summary = await response.json();
+
+      const count = Number(summary.requestCount || 0);
+      requestCount.textContent = count === 0 ? "Noch keine Wünsche" : `${count} Wunsch${count === 1 ? "" : "e"}`;
+
+      const top = Array.isArray(summary.topRequests) ? summary.topRequests.slice(0, 5) : [];
+      if (!top.length) return;
+
+      popularChips.replaceChildren();
+      for (const item of top) {
+        const chip = document.createElement("button");
+        chip.type = "button";
+        chip.className = "song-chip";
+        chip.textContent = `${item.title} · ${item.artist}${item.count > 1 ? ` ×${item.count}` : ""}`;
+        chip.addEventListener("click", () => {
+          resetCatalogSelection();
+          form.title.value = item.title;
+          form.artist.value = item.artist;
+          catalogSearch.value = `${item.title} · ${item.artist}`;
+          searchClear.classList.add("visible");
+          form.title.focus();
+        });
+        popularChips.appendChild(chip);
+      }
+      popular.classList.add("visible");
+    } catch (_) {
+      // The request form still works even when the summary endpoint is unavailable.
+    }
+  }
+
+  function escapeText(value) {
+    return String(value ?? "");
+  }
+
+  function hideSearchResults() {
+    searchResults.classList.remove("visible");
+    searchResults.replaceChildren();
+  }
+
+  function resetCatalogSelection({ keepQuery = false } = {}) {
+    selectedCatalog = null;
+    selectedSong.classList.remove("visible");
+    form.catalogID.value = "";
+    form.catalogArtworkURL.value = "";
+    form.catalogStoreURL.value = "";
+    form.catalogAlbum.value = "";
+    if (!keepQuery) catalogSearch.value = "";
+    searchClear.classList.toggle("visible", catalogSearch.value.length > 0);
+  }
+
+  function chooseCatalogSong(song) {
+    selectedCatalog = song;
+    form.title.value = song.title || "";
+    form.artist.value = song.artist || "";
+    form.catalogID.value = song.id || "";
+    form.catalogArtworkURL.value = song.artworkURL || "";
+    form.catalogStoreURL.value = song.storeURL || "";
+    form.catalogAlbum.value = song.album || "";
+
+    selectedTitle.textContent = song.title || "—";
+    selectedArtist.textContent = song.artist || "—";
+    selectedMeta.textContent = song.album ? `${song.album} · Katalogtreffer` : "Katalogtreffer";
+    selectedArtwork.src = song.artworkURL || "/djtoolkit-icon.png";
+    selectedArtwork.onerror = () => { selectedArtwork.src = "/djtoolkit-icon.png"; };
+    selectedSong.classList.add("visible");
+    catalogSearch.value = `${song.title || ""} · ${song.artist || ""}`;
+    searchClear.classList.add("visible");
+    hideSearchResults();
+  }
+
+  function renderSearchResults(items) {
+    searchResults.replaceChildren();
+
+    if (!items.length) {
+      const empty = document.createElement("div");
+      empty.className = "search-state";
+      empty.textContent = "Kein passender Katalogtreffer. Du kannst den Song unten manuell eingeben.";
+      searchResults.appendChild(empty);
+      searchResults.classList.add("visible");
+      return;
+    }
+
+    for (const song of items) {
+      const row = document.createElement("button");
+      row.type = "button";
+      row.className = "search-result";
+      row.setAttribute("role", "option");
+
+      const artwork = document.createElement("img");
+      artwork.className = "result-artwork";
+      artwork.alt = "";
+      artwork.loading = "lazy";
+      artwork.src = song.artworkURL || "/djtoolkit-icon.png";
+      artwork.onerror = () => { artwork.src = "/djtoolkit-icon.png"; };
+
+      const copy = document.createElement("div");
+      copy.className = "result-copy";
+      const title = document.createElement("div");
+      title.className = "result-title";
+      title.textContent = escapeText(song.title);
+      const artist = document.createElement("div");
+      artist.className = "result-artist";
+      artist.textContent = escapeText(song.artist);
+      copy.append(title, artist);
+      if (song.album) {
+        const album = document.createElement("div");
+        album.className = "result-album";
+        album.textContent = escapeText(song.album);
+        copy.appendChild(album);
+      }
+
+      const arrow = document.createElement("span");
+      arrow.className = "result-arrow";
+      arrow.textContent = "›";
+
+      row.append(artwork, copy, arrow);
+      row.addEventListener("click", () => chooseCatalogSong(song));
+      searchResults.appendChild(row);
+    }
+
+    searchResults.classList.add("visible");
+  }
+
+  async function searchCatalog(query) {
+    const q = normalize(query);
+    if (q.length < 2) {
+      hideSearchResults();
+      return;
+    }
+
+    if (catalogAbort) catalogAbort.abort();
+    catalogAbort = new AbortController();
+
+    searchResults.replaceChildren();
+    const loading = document.createElement("div");
+    loading.className = "search-state";
+    loading.textContent = "Suche Songs …";
+    searchResults.appendChild(loading);
+    searchResults.classList.add("visible");
+
+    try {
+      const response = await fetch(`/api/catalog-search?q=${encodeURIComponent(q)}&country=DE`, {
+        cache: "no-store",
+        signal: catalogAbort.signal
+      });
+      if (!response.ok) throw new Error("search unavailable");
+      const body = await response.json();
+      renderSearchResults(Array.isArray(body.results) ? body.results : []);
+    } catch (error) {
+      if (error.name === "AbortError") return;
+      searchResults.replaceChildren();
+      const fallback = document.createElement("div");
+      fallback.className = "search-state";
+      fallback.textContent = "Suche gerade nicht verfügbar. Bitte Song und Artist manuell eingeben.";
+      searchResults.appendChild(fallback);
+      searchResults.classList.add("visible");
+    }
+  }
+
+  catalogSearch.addEventListener("input", () => {
+    if (selectedCatalog) resetCatalogSelection({ keepQuery: true });
+    searchClear.classList.toggle("visible", catalogSearch.value.length > 0);
+    clearTimeout(catalogTimer);
+    catalogTimer = setTimeout(() => searchCatalog(catalogSearch.value), 280);
+  });
+
+  catalogSearch.addEventListener("focus", () => {
+    if (catalogSearch.value.trim().length >= 2 && !selectedCatalog) {
+      clearTimeout(catalogTimer);
+      catalogTimer = setTimeout(() => searchCatalog(catalogSearch.value), 100);
+    }
+  });
+
+  searchClear.addEventListener("click", () => {
+    resetCatalogSelection();
+    hideSearchResults();
+    catalogSearch.focus();
+  });
+
+  selectedRemove.addEventListener("click", () => {
+    resetCatalogSelection();
+    form.title.value = "";
+    form.artist.value = "";
+    catalogSearch.focus();
+  });
+
+  document.addEventListener("click", (event) => {
+    if (!event.target.closest(".catalog-search")) hideSearchResults();
+  });
+
+  let statusTimer = null;
+
+  async function refreshRequestStatus(requestID) {
+    try {
+      const response = await fetch(`/api/requests/${encodeURIComponent(requestID)}/public`, { cache: "no-store" });
+      if (!response.ok) return;
+      const row = await response.json();
+      const labels = {
+        new: "Eingegangen",
+        accepted: "Vom DJ angenommen",
+        played: "Gespielt ✓",
+        declined: "Nicht eingeplant"
+      };
+      const label = labels[row.status] || "Eingegangen";
+      document.getElementById("requestStatus").lastElementChild.textContent = label;
+      if (row.status === "played" || row.status === "declined") {
+        clearInterval(statusTimer);
+        statusTimer = null;
+      }
+    } catch (_) {}
+  }
+
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    clearStatus();
+
+    const title = normalize(form.title.value);
+    const artist = normalize(form.artist.value);
+
+    if (!title || !artist) {
+      showError("Bitte Song und Artist eintragen.");
+      (!title ? form.title : form.artist).focus();
+      return;
+    }
+
+    setLoading(true);
+
+    const payload = {
+      title,
+      artist,
+      guestName: normalize(form.guestName.value),
+      message: normalize(form.message.value),
+      website: normalize(form.website.value),
+      catalogID: normalize(form.catalogID.value),
+      catalogArtworkURL: normalize(form.catalogArtworkURL.value),
+      catalogStoreURL: normalize(form.catalogStoreURL.value),
+      catalogAlbum: normalize(form.catalogAlbum.value)
+    };
+
+    try {
+      const response = await fetch(`/api/events/${encodeURIComponent(eventID)}/requests`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({}));
+        throw new Error(body.error || "Der Wunsch konnte nicht gesendet werden.");
+      }
+
+      const row = await response.json();
+      document.getElementById("successTitle").textContent = row.title;
+      document.getElementById("successArtist").textContent = row.artist;
+
+      form.reset();
+      resetCatalogSelection();
+      hideSearchResults();
+      form.classList.add("hidden");
+      successCard.classList.add("visible");
+      successCard.scrollIntoView({ behavior: "smooth", block: "center" });
+
+      refreshRequestStatus(row.id);
+      statusTimer = setInterval(() => refreshRequestStatus(row.id), 12000);
+      loadPublicSummary();
+    } catch (error) {
+      showError(error.message || "Konnte nicht gesendet werden. Bitte nochmal versuchen.");
+    } finally {
+      setLoading(false);
+    }
+  });
+
+  anotherButton.addEventListener("click", () => {
+    if (statusTimer) {
+      clearInterval(statusTimer);
+      statusTimer = null;
+    }
+    successCard.classList.remove("visible");
+    form.classList.remove("hidden");
+    clearStatus();
+    form.title.focus();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  });
+
+  loadPublicSummary();
+})();
+</script>
+</body>
+</html>
