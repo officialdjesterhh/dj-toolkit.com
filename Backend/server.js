@@ -228,13 +228,15 @@ async function lookupBeatportMetadata(artist, title) {
   const searchURL = new URL("https://www.beatport.com/search/tracks");
   searchURL.searchParams.set("q", `${artist} ${title}`);
 
-  const searchHTML = await fetchTextWithTimeout(searchURL, 7000);
+  // Beatport is best-effort only. It must never hold the request pipeline for
+  // tens of seconds because the iPhone can independently analyze preview audio.
+  const searchHTML = await fetchTextWithTimeout(searchURL, 3200);
   const links = [];
   const seen = new Set();
   const regex = /href=["'](\/track\/[^"'?#]+\/\d+)["']/gi;
   let match;
 
-  while ((match = regex.exec(searchHTML)) && links.length < 6) {
+  while ((match = regex.exec(searchHTML)) && links.length < 3) {
     const relative = decodeHTMLEntities(match[1]);
     if (!seen.has(relative)) {
       seen.add(relative);
@@ -244,22 +246,20 @@ async function lookupBeatportMetadata(artist, title) {
 
   if (!links.length) return null;
 
-  let best = null;
-  for (const trackURL of links.slice(0, 5)) {
-    try {
-      const html = await fetchTextWithTimeout(trackURL, 6000);
+  const settled = await Promise.allSettled(
+    links.map(async trackURL => {
+      const html = await fetchTextWithTimeout(trackURL, 2800);
       const candidate = parseBeatportTrackPage(html, trackURL);
-      if (!candidate) continue;
-
+      if (!candidate) return null;
       const score = djMatchScore(title, artist, candidate.title, candidate.artist);
-      if (score >= 0.68 && (!best || score > best.matchScore)) {
-        best = { ...candidate, matchScore: score };
-      }
-    } catch (error) {
-      console.warn("Beatport candidate lookup failed", error?.message || error);
-    }
-  }
-  return best;
+      return score >= 0.68 ? { ...candidate, matchScore: score } : null;
+    })
+  );
+
+  return settled
+    .filter(item => item.status === "fulfilled" && item.value)
+    .map(item => item.value)
+    .sort((a, b) => b.matchScore - a.matchScore)[0] || null;
 }
 
 async function lookupGetSongBPMMetadata(artist, title) {
@@ -325,17 +325,21 @@ async function resolveDJMetadata(artist, title) {
   }
 
   let value = null;
-  try {
-    value = await lookupBeatportMetadata(artist, title);
-  } catch (error) {
-    console.warn("Beatport metadata lookup unavailable", error?.message || error);
-  }
 
-  if (!value) {
+  // Prefer the documented API when the owner configured a key.
+  if (process.env.GETSONGBPM_API_KEY) {
     try {
       value = await lookupGetSongBPMMetadata(artist, title);
     } catch (error) {
       console.warn("GetSongBPM metadata lookup unavailable", error?.message || error);
+    }
+  }
+
+  if (!value) {
+    try {
+      value = await lookupBeatportMetadata(artist, title);
+    } catch (error) {
+      console.warn("Beatport metadata lookup unavailable", error?.message || error);
     }
   }
 
@@ -435,7 +439,7 @@ app.get("/health", (_, res) => {
   res.set("Cache-Control", "no-store");
   res.json({
     ok: true,
-    version: "7.8",
+    version: "7.9",
     onlineAnalysis: true,
     catalogPreviewAudio: true,
     djMetadata: true,
