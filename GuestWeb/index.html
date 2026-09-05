@@ -4,46 +4,209 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#05070d">
-  <meta name="description" content="DJ Toolkit – Live Analyze, Camelot, DJ Copilot, Smart Requests und Event Intelligence.">
-  <title>DJ Toolkit · Analyze. Mix. Perform.</title>
+  <meta name="description" content="DJ Toolkit – der smarte DJ Copilot für Analyse, Live Listening, Mix-Fit, Requests, Events und Booth-Workflow.">
+  <meta property="og:title" content="DJ Toolkit · Dein Set. Smarter gemixt.">
+  <meta property="og:description" content="Analyze · Mix · Perform · Together.">
+  <meta property="og:image" content="/djtoolkit-icon.png">
+  <title>DJ Toolkit · Dein Set. Smarter gemixt.</title>
   <link rel="icon" href="/djtoolkit-icon.png">
   <link rel="apple-touch-icon" href="/djtoolkit-icon.png">
   <link rel="manifest" href="/manifest.webmanifest">
   <style>
-    :root{color-scheme:dark;--bg:#05070d;--surface:#0b101b;--surface2:#101726;--line:rgba(255,255,255,.085);--text:#f5f8ff;--muted:#8f9ab1;--cyan:#27d8ff;--blue:#2587ff;--violet:#815cff;--magenta:#dd4cff;--green:#47e3a1;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text",Inter,system-ui,sans-serif}
-    *{box-sizing:border-box} html{scroll-behavior:smooth} html,body{margin:0;min-height:100%;background:var(--bg);color:var(--text)}
-    body{background:radial-gradient(circle at 12% -5%,rgba(37,135,255,.22),transparent 34rem),radial-gradient(circle at 92% 10%,rgba(129,92,255,.20),transparent 35rem),linear-gradient(180deg,#080c15 0%,#05070d 58%,#04060a 100%)}
-    .grid{position:fixed;inset:0;pointer-events:none;opacity:.14;background-image:linear-gradient(rgba(255,255,255,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.025) 1px,transparent 1px);background-size:34px 34px;mask-image:linear-gradient(#000,transparent 82%)}
-    .wrap{width:min(1180px,calc(100% - 34px));margin:auto}.nav{height:84px;display:flex;align-items:center;justify-content:space-between}.brand{display:flex;align-items:center;gap:12px;font-weight:850;letter-spacing:.06em}.brand img{width:42px;height:42px;border-radius:13px;box-shadow:0 0 30px rgba(65,112,255,.22)}
-    .navtag,.status{border:1px solid var(--line);background:rgba(255,255,255,.04);backdrop-filter:blur(18px);border-radius:999px;padding:9px 13px;font-size:12px;color:#aeb8ca}.status{color:#cffff0}.live{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 14px var(--green);margin-right:7px}
-    .hero{padding:68px 0 46px;display:grid;grid-template-columns:1.02fr .98fr;gap:58px;align-items:center}.eyebrow{color:#bfd7ff;font-size:12px;font-weight:800;letter-spacing:.16em;text-transform:uppercase}.hero h1{font-size:clamp(52px,7.5vw,92px);line-height:.91;letter-spacing:-.065em;margin:18px 0 22px}.grad{background:linear-gradient(100deg,var(--cyan),#5b91ff 46%,#b459ff 82%,var(--magenta));-webkit-background-clip:text;background-clip:text;color:transparent}.lead{font-size:clamp(18px,2vw,23px);line-height:1.52;color:#aeb8ca;max-width:690px}.actions{display:flex;gap:11px;flex-wrap:wrap;margin-top:29px}.btn{display:inline-flex;align-items:center;justify-content:center;min-height:50px;padding:0 19px;border-radius:15px;text-decoration:none;font-weight:800;font-size:14px}.primary{color:white;background:linear-gradient(105deg,#168fff,#795bff);box-shadow:0 17px 50px rgba(55,94,255,.25)}.secondary{color:#ecf3ff;border:1px solid var(--line);background:rgba(255,255,255,.04)}
-    .appcard{position:relative;padding:22px;border-radius:32px;border:1px solid var(--line);background:linear-gradient(145deg,rgba(18,28,48,.91),rgba(8,12,21,.88));box-shadow:0 38px 110px rgba(0,0,0,.52);overflow:hidden}.appcard:before{content:"";position:absolute;inset:-1px;background:linear-gradient(120deg,rgba(39,216,255,.25),transparent 30%,transparent 65%,rgba(221,76,255,.20));z-index:-1;border-radius:32px}.toprow{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}.kicker{font-size:11px;letter-spacing:.13em;color:#8491aa}.track{font-size:22px;font-weight:850;margin-top:4px}.sub{color:#8f9ab1;font-size:12px;margin-top:3px}.wave{height:118px;display:flex;align-items:center;gap:3px;margin:24px 0 15px}.bar{flex:1;border-radius:6px;background:linear-gradient(180deg,var(--cyan),#6583ff 55%,var(--magenta));opacity:.9}.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.metric{padding:14px 11px;border:1px solid var(--line);background:rgba(255,255,255,.032);border-radius:16px}.metric b{display:block;font-size:20px}.metric span{display:block;color:#748198;font-size:9px;letter-spacing:.08em;margin-top:3px}.coach{margin-top:10px;padding:15px;border-radius:17px;border:1px solid rgba(71,227,161,.18);background:rgba(71,227,161,.055);display:flex;align-items:center;justify-content:space-between;gap:10px}.coach strong{font-size:13px}.coach small{color:#8fae9f}.score{font-size:22px;font-weight:900;color:var(--green)}
-    .section{padding:62px 0}.sectionhead{max-width:760px;margin-bottom:25px}.sectionhead small{color:#8793aa;font-weight:800;letter-spacing:.14em}.sectionhead h2{font-size:clamp(32px,4vw,50px);letter-spacing:-.045em;margin:9px 0}.sectionhead p{color:var(--muted);line-height:1.55;margin:0}.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:13px}.card{padding:21px;border:1px solid var(--line);background:linear-gradient(145deg,rgba(17,24,40,.78),rgba(9,13,23,.7));border-radius:22px;min-height:154px}.icon{width:38px;height:38px;display:grid;place-items:center;border-radius:12px;background:linear-gradient(135deg,rgba(39,216,255,.16),rgba(129,92,255,.18));font-size:18px;margin-bottom:16px}.card b{font-size:16px}.card p{color:var(--muted);font-size:13px;line-height:1.5;margin:7px 0 0}.strip{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.strip div{padding:17px;border-radius:18px;border:1px solid var(--line);background:rgba(255,255,255,.028)}.strip b{display:block;color:#e8efff}.strip span{font-size:11px;color:#76839a}.footer{padding:42px 0 60px;border-top:1px solid rgba(255,255,255,.055);display:flex;align-items:center;justify-content:space-between;color:#69758b;font-size:12px;gap:16px}
-    @media(max-width:860px){.hero{grid-template-columns:1fr;padding-top:38px}.cards{grid-template-columns:1fr 1fr}.metrics{grid-template-columns:1fr 1fr}.strip{grid-template-columns:1fr 1fr}.navtag{display:none}}@media(max-width:560px){.cards{grid-template-columns:1fr}.hero{gap:32px}.hero h1{font-size:54px}.wrap{width:min(100% - 24px,1180px)}.strip{grid-template-columns:1fr 1fr}}
+    :root{
+      color-scheme:dark;
+      --bg:#04060b;--bg2:#070b13;--card:#0b111d;--card2:#101827;
+      --line:rgba(255,255,255,.08);--text:#f7f9ff;--muted:#8e9ab1;
+      --cyan:#21d7ff;--blue:#2f7bff;--violet:#765bff;--magenta:#dd4dff;
+      --green:#40e49c;--orange:#ffb85a;
+      font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text",Inter,system-ui,sans-serif
+    }
+    *{box-sizing:border-box}
+    html{scroll-behavior:smooth}
+    html,body{margin:0;min-height:100%;background:var(--bg);color:var(--text)}
+    body{
+      background:
+        radial-gradient(circle at 8% -4%,rgba(33,215,255,.16),transparent 30rem),
+        radial-gradient(circle at 96% 4%,rgba(221,77,255,.17),transparent 34rem),
+        linear-gradient(180deg,#070b13 0%,#04060b 52%,#030509 100%);
+      overflow-x:hidden
+    }
+    body:before{
+      content:"";position:fixed;inset:0;pointer-events:none;opacity:.13;
+      background-image:linear-gradient(rgba(255,255,255,.026) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.026) 1px,transparent 1px);
+      background-size:38px 38px;mask-image:linear-gradient(#000,transparent 78%)
+    }
+    a{color:inherit}
+    .wrap{width:min(1180px,calc(100% - 34px));margin:auto}
+    nav{height:82px;display:flex;align-items:center;justify-content:space-between;gap:20px}
+    .brand{display:flex;align-items:center;gap:12px;font-weight:900;letter-spacing:.05em}
+    .brand img{width:44px;height:44px;border-radius:13px;box-shadow:0 0 30px rgba(53,117,255,.28)}
+    .navlinks{display:flex;gap:24px;align-items:center}
+    .navlinks a{text-decoration:none;color:#aeb8ca;font-size:13px;font-weight:700}
+    .navlinks a:hover{color:#fff}
+    .pill{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);background:rgba(255,255,255,.04);padding:9px 13px;border-radius:999px;font-size:11px;color:#b6c1d4;backdrop-filter:blur(18px)}
+    .dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 15px var(--green)}
+    .hero{padding:68px 0 64px;display:grid;grid-template-columns:1.02fr .98fr;gap:54px;align-items:center}
+    .eyebrow{font-size:12px;font-weight:850;letter-spacing:.17em;color:#b7c7e4;text-transform:uppercase}
+    h1{font-size:clamp(52px,7.5vw,92px);line-height:.92;letter-spacing:-.065em;margin:16px 0 22px}
+    .grad{background:linear-gradient(98deg,var(--cyan),#5d8dff 44%,#9d5fff 69%,var(--magenta));-webkit-background-clip:text;background-clip:text;color:transparent}
+    .lead{font-size:clamp(18px,2vw,23px);line-height:1.55;color:#aab5c8;max-width:680px}
+    .actions{display:flex;gap:11px;flex-wrap:wrap;margin-top:30px}
+    .btn{display:inline-flex;align-items:center;justify-content:center;min-height:50px;padding:0 19px;border-radius:15px;text-decoration:none;font-size:14px;font-weight:850}
+    .primary{background:linear-gradient(105deg,#168fff,#785bff 70%,#b952ff);box-shadow:0 18px 55px rgba(56,88,255,.26)}
+    .secondary{border:1px solid var(--line);background:rgba(255,255,255,.04)}
+    .heroMeta{display:flex;gap:16px;flex-wrap:wrap;margin-top:23px;color:#7d899f;font-size:11px}
+    .phone{position:relative;border:1px solid var(--line);border-radius:36px;padding:16px;background:linear-gradient(145deg,rgba(19,29,48,.95),rgba(7,11,19,.95));box-shadow:0 42px 120px rgba(0,0,0,.58);overflow:hidden}
+    .phone:before{content:"";position:absolute;inset:-1px;background:linear-gradient(120deg,rgba(33,215,255,.28),transparent 26%,transparent 67%,rgba(221,77,255,.23));z-index:-1;border-radius:36px}
+    .screen{border-radius:27px;padding:18px;background:linear-gradient(180deg,#0a1020,#070b14);border:1px solid rgba(255,255,255,.05)}
+    .topbar{display:flex;align-items:center;justify-content:space-between}
+    .appbrand{display:flex;align-items:center;gap:9px;font-weight:850}.appbrand img{width:31px;height:31px;border-radius:9px}
+    .live{font-size:10px;color:#bdebd6;border:1px solid rgba(64,228,156,.2);background:rgba(64,228,156,.07);padding:7px 10px;border-radius:999px}
+    .tracktitle{margin-top:24px;color:#78859d;font-size:10px;letter-spacing:.11em}.song{font-size:22px;font-weight:900;margin-top:5px}.artist{font-size:12px;color:#8794aa;margin-top:3px}
+    .wave{height:108px;display:flex;align-items:center;gap:3px;margin:18px 0 13px}
+    .bar{flex:1;border-radius:5px;background:linear-gradient(180deg,var(--cyan),#657fff 54%,var(--magenta));opacity:.85}
+    .metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+    .metric{border:1px solid var(--line);background:rgba(255,255,255,.03);padding:13px 10px;border-radius:15px}.metric b{font-size:18px;display:block}.metric span{font-size:8px;color:#6f7c93;letter-spacing:.09em}
+    .coach{margin-top:9px;padding:14px;border-radius:15px;border:1px solid rgba(64,228,156,.18);background:rgba(64,228,156,.05);display:flex;justify-content:space-between;gap:12px;align-items:center}
+    .coach strong{font-size:12px}.coach small{color:#7fa08e}.score{font-size:21px;font-weight:900;color:var(--green)}
+    section.block{padding:66px 0}
+    .sectionhead{max-width:780px;margin-bottom:27px}.sectionhead small{font-size:11px;color:#8693aa;letter-spacing:.15em;font-weight:850}.sectionhead h2{font-size:clamp(33px,4.5vw,52px);letter-spacing:-.045em;margin:8px 0 10px}.sectionhead p{margin:0;color:var(--muted);font-size:16px;line-height:1.6}
+    .cards{display:grid;grid-template-columns:repeat(3,1fr);gap:13px}
+    .card{padding:21px;border-radius:22px;border:1px solid var(--line);background:linear-gradient(145deg,rgba(17,25,42,.79),rgba(8,12,21,.73));min-height:166px}
+    .icon{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;background:linear-gradient(135deg,rgba(33,215,255,.15),rgba(128,85,255,.18));margin-bottom:16px;font-size:18px}
+    .card b{font-size:16px}.card p{font-size:13px;line-height:1.53;color:var(--muted);margin:7px 0 0}
+    .showcase{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+    .panel{padding:25px;border:1px solid var(--line);background:linear-gradient(145deg,rgba(16,24,40,.8),rgba(8,12,21,.72));border-radius:25px;overflow:hidden}
+    .panel h3{font-size:25px;letter-spacing:-.035em;margin:0 0 7px}.panel>p{color:var(--muted);line-height:1.55;margin:0 0 20px;font-size:13px}
+    .eventTabs{display:flex;gap:7px;margin-bottom:12px}.tab{padding:8px 12px;border-radius:999px;border:1px solid var(--line);font-size:10px;color:#8794aa}.tab.active{color:#fff;background:linear-gradient(100deg,#128fff,#755aff)}
+    .event{display:grid;grid-template-columns:48px 1fr auto;gap:12px;align-items:center;padding:13px;border-radius:17px;border:1px solid var(--line);background:rgba(255,255,255,.025);margin-top:8px}
+    .eventico{width:48px;height:48px;border-radius:13px;display:grid;place-items:center;font-size:22px;background:linear-gradient(135deg,rgba(33,215,255,.13),rgba(221,77,255,.13))}
+    .event b{display:block;font-size:13px}.event small{color:#748198;font-size:10px}.evtactions{display:flex;gap:7px}.mini{width:31px;height:31px;border-radius:10px;border:1px solid var(--line);display:grid;place-items:center;color:#9fb0c8;font-size:12px}
+    .timeline{display:grid;gap:9px}.timeRow{display:grid;grid-template-columns:64px 1fr auto;gap:12px;align-items:center;padding:12px;border-radius:15px;background:rgba(255,255,255,.026);border:1px solid var(--line)}
+    .timeRow .time{font-size:11px;color:#87dfff;font-weight:850}.timeRow b{font-size:12px}.timeRow span{font-size:10px;color:#7d899f}
+    .wide{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.stat{padding:17px;border:1px solid var(--line);background:rgba(255,255,255,.028);border-radius:18px}.stat b{display:block;font-size:14px}.stat span{font-size:10px;color:#76839a}
+    .cta{margin:68px 0;padding:34px;border:1px solid rgba(91,113,255,.18);background:linear-gradient(120deg,rgba(33,215,255,.065),rgba(122,87,255,.08),rgba(221,77,255,.055));border-radius:30px;display:flex;justify-content:space-between;gap:25px;align-items:center}.cta h3{font-size:30px;margin:0 0 7px;letter-spacing:-.04em}.cta p{margin:0;color:#8995ab;font-size:13px}
+    footer{padding:35px 0 56px;border-top:1px solid rgba(255,255,255,.055);display:flex;justify-content:space-between;gap:16px;color:#667288;font-size:11px}
+    @media(max-width:900px){.navlinks{display:none}.hero{grid-template-columns:1fr;padding-top:42px}.cards{grid-template-columns:1fr 1fr}.showcase{grid-template-columns:1fr}.wide{grid-template-columns:1fr 1fr}}
+    @media(max-width:580px){.wrap{width:min(100% - 24px,1180px)}h1{font-size:54px}.cards{grid-template-columns:1fr}.metrics{grid-template-columns:1fr 1fr}.cta{align-items:flex-start;flex-direction:column}.wide{grid-template-columns:1fr 1fr}}
   </style>
 </head>
-<body><div class="grid"></div>
+<body>
 <div class="wrap">
-  <nav class="nav"><div class="brand"><img src="/djtoolkit-icon.png" alt="DJ Toolkit"><span>DJ TOOLKIT</span></div><div class="navtag">ANALYZE · COPILOT · REQUESTS · PERFORM</div></nav>
+  <nav>
+    <div class="brand"><img src="/djtoolkit-icon.png" alt="DJ Toolkit"><span>DJ TOOLKIT</span></div>
+    <div class="navlinks">
+      <a href="#features">Funktionen</a><a href="#events">Events</a><a href="#workflow">Workflow OS</a><a href="/request.html?event=demo&name=DJ%20Toolkit%20Demo">GuestWeb</a>
+    </div>
+    <div class="pill"><span class="dot"></span> V28 · COMPLETE DJ OS</div>
+  </nav>
+
   <main>
     <section class="hero">
-      <div><div class="eyebrow">PRO DJ COMPANION</div><h1>Hört mit.<br><span class="grad">Denkt voraus.</span></h1><p class="lead">DJ Toolkit erkennt Tracks, BPM, Tonart, Camelot, Energy, Phrasen und Crowd-Signale direkt im Booth – und verbindet alles mit Smart Requests, Transition Coaching und Event Intelligence.</p><div class="actions"><a class="btn primary" href="/request.html?event=demo&name=DJ%20Toolkit%20Demo">Guest Request Demo</a><a class="btn secondary" href="#features">Pro Suite ansehen</a><a class="btn secondary" href="/health">Serverstatus</a></div></div>
-      <div class="appcard"><div class="toprow"><div><div class="kicker">LIVE COPILOT</div><div class="track">Track erkannt</div><div class="sub">Listening through iPhone microphone</div></div><div class="status"><span class="live"></span>LIVE</div></div><div class="wave" id="wave"></div><div class="metrics"><div class="metric"><b>126.0</b><span>BPM</span></div><div class="metric"><b style="color:#b675ff">8A</b><span>CAMELOT</span></div><div class="metric"><b>8.4</b><span>ENERGY</span></div><div class="metric"><b>16</b><span>BEATS TO PHRASE</span></div></div><div class="coach"><div><strong>Next transition · Long Blend</strong><br><small>Key + tempo + phrase aligned</small></div><div class="score">96%</div></div></div>
+      <div>
+        <div class="eyebrow">PRO DJ COMPANION</div>
+        <h1>Dein Set.<br><span class="grad">Smarter gemixt.</span></h1>
+        <p class="lead">DJ Toolkit hört mit, erkennt Musik, versteht den Mix und organisiert deinen kompletten Abend – von Analyze und Camelot über Smart Requests bis zum Event Center und DJ Copilot.</p>
+        <div class="actions">
+          <a class="btn primary" href="/request.html?event=demo&name=DJ%20Toolkit%20Demo">Guest Request Demo</a>
+          <a class="btn secondary" href="#features">Alle Funktionen</a>
+          <a class="btn secondary" href="/health">Serverstatus</a>
+        </div>
+        <div class="heroMeta"><span>ANALYZE</span><span>·</span><span>MIX</span><span>·</span><span>PERFORM</span><span>·</span><span>TOGETHER</span></div>
+      </div>
+
+      <div class="phone">
+        <div class="screen">
+          <div class="topbar">
+            <div class="appbrand"><img src="/djtoolkit-icon.png" alt=""><span>DJ TOOLKIT</span></div>
+            <div class="live">● LIVE LISTENING</div>
+          </div>
+          <div class="tracktitle">TRACK ERKANNT</div>
+          <div class="song">Current Club Track</div>
+          <div class="artist">Live through iPhone microphone</div>
+          <div class="wave" id="wave"></div>
+          <div class="metrics">
+            <div class="metric"><b>126.0</b><span>BPM</span></div>
+            <div class="metric"><b style="color:#c078ff">8A</b><span>CAMELOT</span></div>
+            <div class="metric"><b>8.4</b><span>ENERGY</span></div>
+            <div class="metric"><b>16</b><span>BEATS TO PHRASE</span></div>
+          </div>
+          <div class="coach"><div><strong>Long Blend · 16 Bars</strong><br><small>Tempo, Key & Phrase aligned</small></div><div class="score">96%</div></div>
+        </div>
+      </div>
     </section>
 
-    <section class="section" id="features"><div class="sectionhead"><small>DJ COPILOT</small><h2>Mehr als ein Analyzer.</h2><p>Vom ersten Track bis zum letzten Song: DJ Toolkit bündelt Analyse, Set-Entscheidungen, Crowd-Wünsche, Event-Planung, Backup und Booth-Automation in einem Workflow.</p></div><div class="cards">
-      <article class="card"><div class="icon">〽︎</div><b>Ultra Analyze</b><p>BPM, Key, Camelot, Energy, Downbeat, Phrasen, Drops, Vocal Probability, Track Health und Auto Hot Cues.</p></article>
-      <article class="card"><div class="icon">✦</div><b>Live Transition Coach</b><p>Mix-Fit, Phrase Countdown, Vocal-Clash-Warnung, Drop-to-Drop Timing und Transition-Empfehlungen.</p></article>
-      <article class="card"><div class="icon">♥</div><b>Smart Requests</b><p>Voting, Duplicate Detection, ETA, Genre Voting, Must-Play/No-Go und automatische Priorisierung.</p></article>
-      <article class="card"><div class="icon">⌁</div><b>Track Intelligence</b><p>Track Memory, Similar Finder, Transition Memory, Already Played Detection und Event DNA.</p></article>
-      <article class="card"><div class="icon">⚡</div><b>Booth Safety</b><p>Emergency Player, Offline Mode, Set-End Calculator, Smart Last Song und Backup Playlist.</p></article>
-      <article class="card"><div class="icon">◎</div><b>Connected Booth</b><p>Multi-DJ Handover, gemeinsame Set-History, Apple Watch Sync sowie OSC, MIDI und MagicQ Signale.</p></article>
-    </div></section>
+    <section class="block" id="features">
+      <div class="sectionhead"><small>THE COMPLETE DJ OS</small><h2>Mehr als BPM und Key.</h2><p>DJ Toolkit verbindet Musikverständnis, Live-Entscheidungen, Crowd-Wünsche, Event-Organisation und Booth-Sicherheit in einer einzigen App.</p></div>
+      <div class="cards">
+        <article class="card"><div class="icon">〽︎</div><b>Ultra Analyze</b><p>BPM, Tonart, Camelot, Energy, Downbeat, Phrasen, Track-Struktur, Vocal Probability, Track Health und Hot-Cue-Vorschläge.</p></article>
+        <article class="card"><div class="icon">◉</div><b>Live Listening</b><p>Track-Erkennung nur durchs Zuhören über das iPhone-Mikrofon – ideal im Booth, am CDJ oder für spontane Situationen.</p></article>
+        <article class="card"><div class="icon">✦</div><b>DJ Copilot</b><p>Next-Track-Ideen, Mix-Fit, Transition Risk, Phrase Countdown, Best Mix Point, Drop-to-Drop und Vocal-Clash-Warnung.</p></article>
+        <article class="card"><div class="icon">♥</div><b>Smart Requests</b><p>QR-Wünsche, Voting, Duplicate Detection, ETA, Genre Voting, Must-Play, No-Go und intelligente Priorisierung.</p></article>
+        <article class="card"><div class="icon">⚡</div><b>Booth Safety</b><p>Emergency Player, Silence Detector, Volume Consistency, Offline-Modus, Backup-Playlist und Set-End-Calculator.</p></article>
+        <article class="card"><div class="icon">⌁</div><b>Track Intelligence</b><p>Transition Memory, Similar Finder, Artist Separation, Repeat Guard, Crowd Peaks und persönliche Track-Erfahrungen.</p></article>
+      </div>
+    </section>
 
-    <section class="section"><div class="sectionhead"><small>EVENT INTELLIGENCE</small><h2>Der ganze Abend in einem System.</h2></div><div class="strip"><div><b>Client Portal</b><span>Must Play · No-Go · Timeline</span></div><div><b>Crowd Direction</b><span>Genre Voting · Request Popularity</span></div><div><b>Gig Report</b><span>Tracks · BPM · Energy · Peaks</span></div><div><b>Multi-DJ</b><span>Handover · Shared played tracks</span></div></div></section>
+    <section class="block" id="events">
+      <div class="sectionhead"><small>EVENT CENTER</small><h2>Jedes Event unter Kontrolle.</h2><p>Club, Hochzeit, Geburtstag oder Festival: Veranstaltungen anlegen, auswählen, teilen, archivieren und vergangene Events löschen. Der QR-Code bleibt jederzeit abrufbar.</p></div>
+      <div class="showcase">
+        <div class="panel">
+          <h3>Meine Veranstaltungen</h3>
+          <p>Aktive, geplante und vergangene Events sauber getrennt – mit direktem QR- und Share-Zugriff.</p>
+          <div class="eventTabs"><div class="tab active">Aktiv</div><div class="tab">Geplant</div><div class="tab">Vergangen</div></div>
+          <div class="event"><div class="eventico">◉</div><div><b>Club Night</b><small>Heute · 22:00–04:00</small></div><div class="evtactions"><div class="mini">QR</div><div class="mini">↗</div></div></div>
+          <div class="event"><div class="eventico">💍</div><div><b>Hochzeit</b><small>Lisa & Marco · Samstag</small></div><div class="evtactions"><div class="mini">QR</div><div class="mini">↗</div></div></div>
+          <div class="event"><div class="eventico">🎂</div><div><b>Geburtstag</b><small>Private Feier · geplant</small></div><div class="evtactions"><div class="mini">QR</div><div class="mini">↗</div></div></div>
+        </div>
+
+        <div class="panel">
+          <h3>Event Intelligence</h3>
+          <p>Der Ablauf des Abends bleibt direkt beim DJ: Must-Plays, No-Gos, Ansagen, Timings und Crowd-Richtung.</p>
+          <div class="timeline">
+            <div class="timeRow"><div class="time">22:00</div><div><b>Open Floor</b><br><span>Warm-up · Energy 4–5</span></div><span>READY</span></div>
+            <div class="timeRow"><div class="time">23:30</div><div><b>Peak Window</b><br><span>Energy Up · Crowd Requests</span></div><span>LIVE</span></div>
+            <div class="timeRow"><div class="time">00:00</div><div><b>Special Moment</b><br><span>Birthday / First Dance / Announcement</span></div><span>ALERT</span></div>
+            <div class="timeRow"><div class="time">03:45</div><div><b>Last Song Mode</b><br><span>Smart closing recommendation</span></div><span>15 MIN</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="block" id="workflow">
+      <div class="sectionhead"><small>WORKFLOW OS</small><h2>Vor, während und nach dem Gig.</h2><p>DJ Toolkit soll nicht nur im Mix helfen, sondern den kompletten DJ-Workflow abdecken.</p></div>
+      <div class="cards">
+        <article class="card"><div class="icon">▦</div><b>Auto Set Planner</b><p>Set-Struktur nach Eventtyp, Dauer, Genre, BPM und gewünschter Energy-Kurve vorbereiten.</p></article>
+        <article class="card"><div class="icon">▶</div><b>Set Rehearsal</b><p>Geplante Sets vorab auf Energy-Löcher, Key-Konflikte, Artist-Abstände und Repeat-Risiken prüfen.</p></article>
+        <article class="card"><div class="icon">▣</div><b>Booth Display</b><p>Große Live-Ansicht für iPad und Querformat mit Track, BPM, Key, Phrase, Timer und wichtigen Alerts.</p></article>
+        <article class="card"><div class="icon">🎙</div><b>Voice Commands</b><p>Track-Notizen und Booth-Aktionen schneller erfassen, ohne im entscheidenden Moment lange durch Menüs zu gehen.</p></article>
+        <article class="card"><div class="icon">◎</div><b>Multi-DJ & Handover</b><p>Shared History, offene Requests, Übergabe-QR und gemeinsamer Eventstatus für B2B und DJ-Wechsel.</p></article>
+        <article class="card"><div class="icon">↗</div><b>Gig Reports</b><p>Set-History, BPM-Verlauf, Energy, Requests, Crowd Peaks und Eventdaten nach dem Gig zusammenfassen.</p></article>
+      </div>
+    </section>
+
+    <section class="block">
+      <div class="sectionhead"><small>CONNECTED EVENT</small><h2>DJ, Gäste und Veranstalter verbunden.</h2></div>
+      <div class="wide">
+        <div class="stat"><b>GuestWeb</b><span>QR Requests · Voting · Browser only</span></div>
+        <div class="stat"><b>Client Portal</b><span>Must Play · No-Go · Timeline</span></div>
+        <div class="stat"><b>Remote Manager</b><span>Live Eventstatus · Announcements</span></div>
+        <div class="stat"><b>Multi-Device</b><span>iPhone · iPad · Watch Companion</span></div>
+      </div>
+    </section>
+
+    <div class="cta">
+      <div><h3>Mehr Musik. Bessere Nächte.</h3><p>DJ Toolkit wird als professioneller Companion für moderne DJs entwickelt.</p></div>
+      <div class="actions" style="margin:0"><a class="btn primary" href="/request.html?event=demo&name=DJ%20Toolkit%20Demo">GuestWeb ausprobieren</a></div>
+    </div>
   </main>
-  <footer class="footer"><span>© DJ Toolkit · dj-toolkit.com</span><span>Analyze · Mix · Perform · Together</span></footer>
+
+  <footer><span>© DJ Toolkit · dj-toolkit.com</span><span>Analyze · Mix · Perform · Together</span></footer>
 </div>
 <script>
-const wave=document.getElementById('wave');const h=[18,32,48,72,92,58,36,78,96,65,42,84,70,48,33,62,88,74,43,58,90,100,71,47,68,93,75,45,62,81,55,31,50,77,91,61,38,68,85,53,29,47,72,57,41,64,89,70];h.forEach((v,i)=>{const b=document.createElement('span');b.className='bar';b.style.height=v+'%';b.style.opacity=(.52+i/h.length*.44).toFixed(2);wave.appendChild(b)});
-</script></body></html>
+const wave=document.getElementById('wave');
+const h=[18,31,47,68,88,58,37,76,96,64,43,82,72,49,34,61,89,75,45,57,92,100,73,46,67,94,77,44,61,83,56,32,50,78,90,63,38,69,86,54,29,48,73,59,40,65,88,71];
+h.forEach((v,i)=>{const b=document.createElement('span');b.className='bar';b.style.height=v+'%';b.style.opacity=(.52+i/h.length*.44).toFixed(2);wave.appendChild(b)});
+</script>
+</body>
+</html>

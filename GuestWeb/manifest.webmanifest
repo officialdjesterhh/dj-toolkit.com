@@ -1,10 +1,11 @@
 {
-  "name": "DJ Toolkit Guest Requests",
-  "short_name": "DJ Request",
-  "start_url": "/request.html",
+  "name": "DJ Toolkit",
+  "short_name": "DJ Toolkit",
+  "start_url": "/",
   "display": "standalone",
-  "background_color": "#07080d",
-  "theme_color": "#090b12",
+  "background_color": "#04060b",
+  "theme_color": "#05070d",
+  "description": "DJ Toolkit – Analyze, Live Listening, DJ Copilot, Smart Requests und Event Intelligence.",
   "icons": [
     {
       "src": "/djtoolkit-icon.png",
