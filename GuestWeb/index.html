@@ -86,6 +86,43 @@
     .timeRow .time{font-size:11px;color:#87dfff;font-weight:850}.timeRow b{font-size:12px}.timeRow span{font-size:10px;color:#7d899f}
     .wide{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.stat{padding:17px;border:1px solid var(--line);background:rgba(255,255,255,.028);border-radius:18px}.stat b{display:block;font-size:14px}.stat span{font-size:10px;color:#76839a}
     .cta{margin:68px 0;padding:34px;border:1px solid rgba(91,113,255,.18);background:linear-gradient(120deg,rgba(33,215,255,.065),rgba(122,87,255,.08),rgba(221,77,255,.055));border-radius:30px;display:flex;justify-content:space-between;gap:25px;align-items:center}.cta h3{font-size:30px;margin:0 0 7px;letter-spacing:-.04em}.cta p{margin:0;color:#8995ab;font-size:13px}
+
+    .feedback-invite{margin:34px 0 0;padding:30px;border-radius:28px;border:1px solid rgba(73,197,255,.16);background:
+      radial-gradient(circle at 0% 0%,rgba(33,215,255,.10),transparent 31%),
+      radial-gradient(circle at 100% 100%,rgba(221,77,255,.10),transparent 34%),
+      linear-gradient(145deg,rgba(16,24,40,.88),rgba(8,12,21,.80));
+      display:grid;grid-template-columns:1fr auto;gap:28px;align-items:center}
+    .feedback-invite .tag{display:inline-flex;align-items:center;gap:7px;font-size:10px;font-weight:900;letter-spacing:.14em;color:#7bdfff;text-transform:uppercase}
+    .feedback-invite h3{font-size:clamp(27px,3.4vw,40px);letter-spacing:-.045em;margin:8px 0 9px}
+    .feedback-invite p{margin:0;color:#98a5ba;line-height:1.65;font-size:14px;max-width:760px}
+    .feedback-invite strong{color:#f7f9ff}
+    .feedback-invite .feedback-note{display:flex;gap:13px;flex-wrap:wrap;margin-top:16px;color:#77849a;font-size:10px}
+    .feedback-invite .feedback-note span{display:inline-flex;align-items:center;gap:5px}
+
+    .new-badge{display:inline-flex;align-items:center;gap:7px;padding:7px 10px;border-radius:999px;border:1px solid rgba(33,215,255,.18);background:rgba(33,215,255,.06);font-size:9px;font-weight:900;letter-spacing:.12em;color:#7ee6ff;text-transform:uppercase}
+    .feature-groups{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+    .feature-group{padding:23px;border-radius:23px;border:1px solid var(--line);background:linear-gradient(145deg,rgba(16,24,40,.82),rgba(7,11,19,.76))}
+    .feature-group-head{display:flex;align-items:flex-start;gap:13px;margin-bottom:15px}
+    .feature-group-head .icon{margin:0;flex:0 0 auto}
+    .feature-group h3{font-size:20px;margin:1px 0 4px;letter-spacing:-.03em}
+    .feature-group p{font-size:12px;line-height:1.55;color:#7f8ba1;margin:0}
+    .chips{display:flex;gap:7px;flex-wrap:wrap}
+    .chip{display:inline-flex;align-items:center;gap:5px;padding:7px 9px;border-radius:10px;border:1px solid rgba(255,255,255,.07);background:rgba(255,255,255,.025);font-size:10px;color:#aeb9cc}
+    .chip.hot{border-color:rgba(221,77,255,.17);color:#e8b3ff;background:rgba(221,77,255,.05)}
+    .feature-gallery{display:grid;grid-template-columns:repeat(3,1fr);gap:13px}
+    .feature-shot{position:relative;overflow:hidden;border-radius:22px;border:1px solid rgba(255,255,255,.085);background:#09101b;min-height:260px;cursor:zoom-in}
+    .feature-shot img{width:100%;height:100%;display:block;object-fit:cover;aspect-ratio:4/5;transition:transform .35s ease,filter .35s ease}
+    .feature-shot:hover img{transform:scale(1.025);filter:brightness(1.04)}
+    .feature-shot:after{content:"";position:absolute;inset:45% 0 0;background:linear-gradient(transparent,rgba(2,4,8,.94));pointer-events:none}
+    .feature-shot-copy{position:absolute;z-index:2;left:17px;right:17px;bottom:16px}
+    .feature-shot-copy b{font-size:16px;display:block;margin-bottom:3px}
+    .feature-shot-copy span{font-size:10px;color:#98a6bc;line-height:1.45}
+    .feature-shot .new-badge{position:absolute;z-index:3;left:13px;top:13px;backdrop-filter:blur(12px)}
+    .lightbox{position:fixed;inset:0;z-index:120;display:none;place-items:center;padding:22px;background:rgba(0,0,0,.86);backdrop-filter:blur(18px)}
+    .lightbox.open{display:grid}
+    .lightbox img{max-width:min(100%,1120px);max-height:90vh;border-radius:24px;border:1px solid rgba(255,255,255,.11);box-shadow:0 35px 130px rgba(0,0,0,.8)}
+    .lightbox-close{position:fixed;right:22px;top:22px;width:44px;height:44px;border-radius:14px;border:1px solid rgba(255,255,255,.12);background:rgba(15,20,31,.92);color:#fff;font-size:24px;cursor:pointer}
+    .feature-footnote{margin-top:18px;color:#6e7a90;font-size:10px;line-height:1.55}
     footer{padding:35px 0 56px;border-top:1px solid rgba(255,255,255,.055);display:flex;justify-content:space-between;gap:16px;color:#667288;font-size:11px}
 
     .feedback-fab{
@@ -124,8 +161,8 @@
     .feedback-status.error{background:rgba(255,103,131,.08);border:1px solid rgba(255,103,131,.25);color:#ff9bab}
     .feedback-privacy{font-size:10px;color:#68758c;line-height:1.5}
     .feedback-hp{position:absolute!important;left:-9999px!important;width:1px!important;height:1px!important;opacity:0!important}
-    @media(max-width:900px){.navlinks{display:none}.hero{grid-template-columns:1fr;padding-top:42px}.cards{grid-template-columns:1fr 1fr}.showcase{grid-template-columns:1fr}.wide{grid-template-columns:1fr 1fr}}
-    @media(max-width:580px){.wrap{width:min(100% - 24px,1180px)}h1{font-size:54px}.cards{grid-template-columns:1fr}.metrics{grid-template-columns:1fr 1fr}.cta{align-items:flex-start;flex-direction:column}.wide{grid-template-columns:1fr 1fr}.feedback-grid{grid-template-columns:1fr}.feedback-fab{right:14px;bottom:14px}.feedback-dialog{padding:20px;border-radius:22px}}
+    @media(max-width:900px){.navlinks{display:none}.hero{grid-template-columns:1fr;padding-top:42px}.cards{grid-template-columns:1fr 1fr}.showcase{grid-template-columns:1fr}.wide{grid-template-columns:1fr 1fr}.feedback-invite{grid-template-columns:1fr}.feature-groups{grid-template-columns:1fr}.feature-gallery{grid-template-columns:1fr 1fr}}
+    @media(max-width:580px){.wrap{width:min(100% - 24px,1180px)}h1{font-size:54px}.cards{grid-template-columns:1fr}.metrics{grid-template-columns:1fr 1fr}.cta{align-items:flex-start;flex-direction:column}.wide{grid-template-columns:1fr 1fr}.feedback-grid{grid-template-columns:1fr}.feedback-fab{right:14px;bottom:14px}.feedback-dialog{padding:20px;border-radius:22px}.feature-gallery{grid-template-columns:1fr}}
   </style>
 </head>
 <body>
@@ -133,7 +170,7 @@
   <nav>
     <div class="brand"><img src="/djtoolkit-icon.png" alt="DJ Toolkit"><span>DJ TOOLKIT</span></div>
     <div class="navlinks">
-      <a href="#features">Funktionen</a><a href="#events">Events</a><a href="#workflow">Workflow OS</a><a href="/request.html?event=demo&name=DJ%20Toolkit%20Demo">GuestWeb</a><a href="#" id="navFeedback">Feedback</a>
+      <a href="#features">Funktionen</a><a href="#new-features">Neu</a><a href="#showcase">Bilder</a><a href="#events">Events</a><a href="/request.html?event=demo&name=DJ%20Toolkit%20Demo">GuestWeb</a><a href="#" id="navFeedback">Feedback</a>
     </div>
     <div class="pill"><span class="dot"></span> V28 · COMPLETE DJ OS</div>
   </nav>
@@ -185,6 +222,70 @@
       </div>
     </section>
 
+    <section class="block" id="new-features">
+      <div class="sectionhead">
+        <small>NEW IN DJ TOOLKIT</small>
+        <h2>Die neuen Funktionen im Überblick.</h2>
+        <p>Von Booth Safety bis Genre Voting: DJ Toolkit wächst zu einem vollständigen DJ-Betriebssystem für Vorbereitung, Live-Set, Crowd und Nachbereitung.</p>
+      </div>
+
+      <div class="feature-groups">
+        <article class="feature-group">
+          <div class="feature-group-head"><div class="icon">〽︎</div><div><h3>Analyze & DJ Intelligence</h3><p>Musik erkennen, verstehen und besser einordnen.</p></div></div>
+          <div class="chips">
+            <span class="chip hot">Ultra Analyze</span><span class="chip">BPM</span><span class="chip">Key & Camelot</span><span class="chip">Energy</span>
+            <span class="chip">Phrase Detection</span><span class="chip">Downbeat</span><span class="chip">Vocal Probability</span><span class="chip">Track Structure</span>
+            <span class="chip">Track Health</span><span class="chip">Hot-Cue Suggestions</span><span class="chip">Track Genre</span><span class="chip">Similar Track Finder</span>
+          </div>
+        </article>
+
+        <article class="feature-group">
+          <div class="feature-group-head"><div class="icon">✦</div><div><h3>DJ Copilot & Mix Assistant</h3><p>Live-Entscheidungen für harmonischere und sicherere Übergänge.</p></div></div>
+          <div class="chips">
+            <span class="chip hot">Smart Queue</span><span class="chip">Mix Fit</span><span class="chip">Transition Risk</span><span class="chip">Best Mix Point</span>
+            <span class="chip">Phrase Countdown</span><span class="chip">Drop-to-Drop</span><span class="chip">Vocal Clash Warning</span><span class="chip">Energy Up</span>
+            <span class="chip">Rescue My Set</span><span class="chip">Transition Memory</span><span class="chip">Artist Separation</span><span class="chip">Repeat Guard</span>
+          </div>
+        </article>
+
+        <article class="feature-group">
+          <div class="feature-group-head"><div class="icon">♥</div><div><h3>Requests & Crowd</h3><p>Mehr Interaktion, ohne dass der DJ im Booth ständig unterbrochen wird.</p></div></div>
+          <div class="chips">
+            <span class="chip hot">QR Requests</span><span class="chip">Request Voting</span><span class="chip">Live Genre Voting</span><span class="chip">Genre pro Track</span>
+            <span class="chip">Request ETA</span><span class="chip">Duplicate Detection</span><span class="chip">Must Play</span><span class="chip">Do Not Play</span>
+            <span class="chip">Hidden DJ Notes</span><span class="chip">Request Priority</span><span class="chip">Family Safe</span><span class="chip">Event Format Fit</span>
+          </div>
+        </article>
+
+        <article class="feature-group">
+          <div class="feature-group-head"><div class="icon">▦</div><div><h3>Events & Workflow OS</h3><p>Der komplette Gig – von der Planung bis zum Report.</p></div></div>
+          <div class="chips">
+            <span class="chip hot">Event Center</span><span class="chip">House / Tech House / Techno / Open Format</span><span class="chip">QR jederzeit teilen</span>
+            <span class="chip">Vergangene Events löschen</span><span class="chip">Auto Set Planner</span><span class="chip">Set Rehearsal</span><span class="chip">Event Timeline</span>
+            <span class="chip">Client Portal</span><span class="chip">Pre-Gig Briefing</span><span class="chip">Post-Gig Debrief</span><span class="chip">Gig Reports</span><span class="chip">Set Comparison</span>
+          </div>
+        </article>
+
+        <article class="feature-group">
+          <div class="feature-group-head"><div class="icon">⚡</div><div><h3>Booth Safety</h3><p>Mehr Sicherheit und Kontrolle in kritischen Momenten.</p></div></div>
+          <div class="chips">
+            <span class="chip hot">Emergency Player</span><span class="chip">Emergency Playlist</span><span class="chip">Silence Detector</span><span class="chip">Volume Consistency</span>
+            <span class="chip">Setup Status</span><span class="chip">Booth Checklist</span><span class="chip">Emergency Contacts</span><span class="chip">Offline Cache</span>
+            <span class="chip">Set-End Calculator</span><span class="chip">Smart Last Song</span><span class="chip">Booth Display</span><span class="chip">Landscape Pro Mode</span>
+          </div>
+        </article>
+
+        <article class="feature-group">
+          <div class="feature-group-head"><div class="icon">◎</div><div><h3>Connected DJ</h3><p>Geräte, DJs, Veranstalter und Team besser miteinander verbinden.</p></div></div>
+          <div class="chips">
+            <span class="chip hot">Multi-DJ / B2B</span><span class="chip">DJ Handover</span><span class="chip">Handover QR</span><span class="chip">Multi-Device Sync</span>
+            <span class="chip">Apple Watch Companion</span><span class="chip">Live Activity Template</span><span class="chip">Remote Event Manager</span><span class="chip">Venue Staff Portal</span>
+            <span class="chip">Voice Commands</span><span class="chip">Rekordbox CSV Import</span><span class="chip">CSV Export</span><span class="chip">White Label GuestWeb</span>
+          </div>
+        </article>
+      </div>
+    </section>
+
     <section class="block" id="events">
       <div class="sectionhead"><small>EVENT CENTER</small><h2>Jedes Event unter Kontrolle.</h2><p>Club, Hochzeit, Geburtstag oder Festival: Veranstaltungen anlegen, auswählen, teilen, archivieren und vergangene Events löschen. Der QR-Code bleibt jederzeit abrufbar.</p></div>
       <div class="showcase">
@@ -232,6 +333,73 @@
       </div>
     </section>
 
+    <section class="block" id="showcase">
+      <div class="sectionhead">
+        <small>FEATURE SHOWCASE</small>
+        <h2>So sieht DJ Toolkit in Aktion aus.</h2>
+        <p>Einige Beispielansichten der neuen Funktionen. Tippe oder klicke auf ein Bild, um es größer anzusehen.</p>
+      </div>
+
+      <div class="feature-gallery">
+        <figure class="feature-shot" data-full="/assets/features/booth-safety.webp">
+          <span class="new-badge">Booth Safety</span>
+          <img src="/assets/features/booth-safety.webp" alt="DJ Toolkit Booth Safety Beispielansicht" loading="lazy">
+          <figcaption class="feature-shot-copy"><b>Booth Safety</b><span>Emergency, Setup-Status und Sicherheitsfunktionen für den Booth.</span></figcaption>
+        </figure>
+
+        <figure class="feature-shot" data-full="/assets/features/genre-voting.webp">
+          <span class="new-badge">Crowd Live</span>
+          <img src="/assets/features/genre-voting.webp" alt="DJ Toolkit Live Genre Voting Beispiel" loading="lazy">
+          <figcaption class="feature-shot-copy"><b>Live Genre Voting</b><span>Die Crowd stimmt innerhalb des vom DJ gesetzten Eventformats ab.</span></figcaption>
+        </figure>
+
+        <figure class="feature-shot" data-full="/assets/features/event-music-direction.webp">
+          <span class="new-badge">Event Center</span>
+          <img src="/assets/features/event-music-direction.webp" alt="DJ Toolkit Event Musikrichtung auswählen" loading="lazy">
+          <figcaption class="feature-shot-copy"><b>Event-Musikrichtung</b><span>House, Tech House, Techno oder Open Format direkt beim Event festlegen.</span></figcaption>
+        </figure>
+
+        <figure class="feature-shot" data-full="/assets/features/request-genre-detection.webp">
+          <span class="new-badge">Requests</span>
+          <img src="/assets/features/request-genre-detection.webp" alt="DJ Toolkit Requests mit Genre-Erkennung" loading="lazy">
+          <figcaption class="feature-shot-copy"><b>Genre pro Request</b><span>Jeder erkannte Track zeigt dem DJ direkt die passende Musikrichtung.</span></figcaption>
+        </figure>
+
+        <figure class="feature-shot" data-full="/assets/features/feedback.webp">
+          <span class="new-badge">Community</span>
+          <img src="/assets/features/feedback.webp" alt="DJ Toolkit Feedback Button Beispiel" loading="lazy">
+          <figcaption class="feature-shot-copy"><b>Feedback Button</b><span>Anregungen und Verbesserungsvorschläge direkt ans DJ-Toolkit Team.</span></figcaption>
+        </figure>
+
+        <figure class="feature-shot" data-full="/assets/features/new-features.webp">
+          <span class="new-badge">V28</span>
+          <img src="/assets/features/new-features.webp" alt="DJ Toolkit Übersicht neue Features" loading="lazy">
+          <figcaption class="feature-shot-copy"><b>Immer mehr Möglichkeiten</b><span>Neue Funktionen für Analyse, Crowd, Events, Sicherheit und DJ-Workflow.</span></figcaption>
+        </figure>
+      </div>
+
+      <div class="feature-footnote">Die gezeigten Visuals sind Beispielansichten und können sich bis zur finalen Produktversion noch verändern.</div>
+    </section>
+
+    <section class="feedback-invite" id="feedback">
+      <div>
+        <div class="tag">♡ COMMUNITY FEEDBACK</div>
+        <h3>Deine Ideen machen DJ Toolkit besser.</h3>
+        <p>
+          Wir freuen uns ausdrücklich über <strong>Anregungen, Verbesserungsvorschläge und neue Funktionsideen</strong>.
+          Wenn dir bei der App oder auf unserer Website etwas auffällt, sag es unserem Team einfach über den Feedback-Button.
+          Jede Rückmeldung hilft uns dabei, DJ Toolkit noch besser auf den echten DJ-Alltag abzustimmen.
+        </p>
+        <div class="feedback-note">
+          <span>✓ direkt ans DJ-Toolkit Team</span>
+          <span>✓ E-Mail erforderlich</span>
+          <span>✓ Mobilnummer optional</span>
+          <span>✓ automatische Eingangsbestätigung</span>
+        </div>
+      </div>
+      <button class="btn primary" id="feedbackIdeasButton" type="button">Anregung senden ↗</button>
+    </section>
+
     <div class="cta">
       <div><h3>Mehr Musik. Bessere Nächte.</h3><p>DJ Toolkit wird als professioneller Companion für moderne DJs entwickelt.</p></div>
       <div class="actions" style="margin:0"><a class="btn primary" href="/request.html?event=demo&name=DJ%20Toolkit%20Demo">GuestWeb ausprobieren</a></div>
@@ -244,6 +412,11 @@
 <button class="feedback-fab" id="feedbackButton" type="button" aria-haspopup="dialog" aria-controls="feedbackModal">
   <span>♡</span><span>Feedback</span>
 </button>
+
+<div class="lightbox" id="featureLightbox" aria-hidden="true">
+  <button class="lightbox-close" id="featureLightboxClose" type="button" aria-label="Bild schließen">×</button>
+  <img id="featureLightboxImage" src="" alt="DJ Toolkit Feature Vorschau">
+</div>
 
 <div class="feedback-modal" id="feedbackModal" role="dialog" aria-modal="true" aria-labelledby="feedbackTitle">
   <div class="feedback-dialog">
@@ -316,10 +489,34 @@ const wave=document.getElementById('wave');
 const h=[18,31,47,68,88,58,37,76,96,64,43,82,72,49,34,61,89,75,45,57,92,100,73,46,67,94,77,44,61,83,56,32,50,78,90,63,38,69,86,54,29,48,73,59,40,65,88,71];
 h.forEach((v,i)=>{const b=document.createElement('span');b.className='bar';b.style.height=v+'%';b.style.opacity=(.52+i/h.length*.44).toFixed(2);wave.appendChild(b)});
 
+const featureLightbox=document.getElementById('featureLightbox');
+const featureLightboxImage=document.getElementById('featureLightboxImage');
+const featureLightboxClose=document.getElementById('featureLightboxClose');
+
+document.querySelectorAll('.feature-shot').forEach(card=>{
+  card.addEventListener('click',()=>{
+    const full=card.dataset.full;
+    if(!full)return;
+    featureLightboxImage.src=full;
+    featureLightbox.classList.add('open');
+    featureLightbox.setAttribute('aria-hidden','false');
+    document.body.style.overflow='hidden';
+  });
+});
+function closeFeatureLightbox(){
+  featureLightbox.classList.remove('open');
+  featureLightbox.setAttribute('aria-hidden','true');
+  featureLightboxImage.src='';
+  document.body.style.overflow='';
+}
+featureLightboxClose?.addEventListener('click',closeFeatureLightbox);
+featureLightbox?.addEventListener('click',event=>{if(event.target===featureLightbox)closeFeatureLightbox()});
+
 const feedbackModal=document.getElementById('feedbackModal');
 const feedbackButton=document.getElementById('feedbackButton');
 const navFeedback=document.getElementById('navFeedback');
 const feedbackClose=document.getElementById('feedbackClose');
+const feedbackIdeasButton=document.getElementById('feedbackIdeasButton');
 const feedbackForm=document.getElementById('feedbackForm');
 const feedbackSubmit=document.getElementById('feedbackSubmit');
 const feedbackStatus=document.getElementById('feedbackStatus');
@@ -338,9 +535,14 @@ function closeFeedback(){
 }
 feedbackButton.addEventListener('click',openFeedback);
 navFeedback?.addEventListener('click',openFeedback);
+feedbackIdeasButton?.addEventListener('click',openFeedback);
 feedbackClose.addEventListener('click',closeFeedback);
 feedbackModal.addEventListener('click',event=>{if(event.target===feedbackModal)closeFeedback()});
-document.addEventListener('keydown',event=>{if(event.key==='Escape'&&feedbackModal.classList.contains('open'))closeFeedback()});
+document.addEventListener('keydown',event=>{
+  if(event.key!=='Escape')return;
+  if(featureLightbox.classList.contains('open'))closeFeatureLightbox();
+  else if(feedbackModal.classList.contains('open'))closeFeedback();
+});
 
 feedbackStars.forEach(button=>{
   button.addEventListener('click',()=>{
