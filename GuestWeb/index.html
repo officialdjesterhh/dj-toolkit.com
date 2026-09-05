@@ -87,6 +87,29 @@
     .wide{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.stat{padding:17px;border:1px solid var(--line);background:rgba(255,255,255,.028);border-radius:18px}.stat b{display:block;font-size:14px}.stat span{font-size:10px;color:#76839a}
     .cta{margin:68px 0;padding:34px;border:1px solid rgba(91,113,255,.18);background:linear-gradient(120deg,rgba(33,215,255,.065),rgba(122,87,255,.08),rgba(221,77,255,.055));border-radius:30px;display:flex;justify-content:space-between;gap:25px;align-items:center}.cta h3{font-size:30px;margin:0 0 7px;letter-spacing:-.04em}.cta p{margin:0;color:#8995ab;font-size:13px}
 
+
+    .newsletter-invite{
+      margin:34px 0 0;padding:30px;border-radius:28px;border:1px solid rgba(142,99,255,.18);
+      background:
+        radial-gradient(circle at 88% 18%,rgba(222,77,255,.14),transparent 18rem),
+        linear-gradient(125deg,rgba(24,39,62,.86),rgba(10,14,24,.88));
+      display:flex;align-items:center;justify-content:space-between;gap:26px
+    }
+    .newsletter-invite .tag{font-size:10px;font-weight:900;letter-spacing:.14em;color:#c68cff;text-transform:uppercase}
+    .newsletter-invite h3{font-size:clamp(27px,3.4vw,40px);letter-spacing:-.045em;margin:8px 0 9px}
+    .newsletter-invite p{margin:0;color:#98a5ba;line-height:1.65;font-size:14px;max-width:760px}
+    .newsletter-badges{display:flex;gap:9px;flex-wrap:wrap;margin-top:15px}
+    .newsletter-badges span{padding:7px 10px;border-radius:999px;background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.06);font-size:9px;color:#8e9cb3}
+
+    .newsletter-modal{position:fixed;inset:0;z-index:82;display:none;place-items:center;padding:18px;background:rgba(1,3,7,.76);backdrop-filter:blur(18px)}
+    .newsletter-modal.open{display:grid}
+    .newsletter-dialog{width:min(610px,100%);max-height:min(90vh,760px);overflow:auto;border:1px solid rgba(255,255,255,.11);border-radius:26px;background:linear-gradient(155deg,#111a2a,#080d16 65%);box-shadow:0 36px 120px rgba(0,0,0,.62);padding:25px}
+    .newsletter-options{display:grid;gap:8px}
+    .newsletter-option{display:flex;align-items:center;gap:10px;padding:11px 12px;border-radius:13px;border:1px solid rgba(255,255,255,.06);background:rgba(255,255,255,.025);color:#b8c4d7;font-size:12px}
+    .newsletter-option input{accent-color:#7b6cff;width:17px;height:17px}
+    .newsletter-consent{display:flex;align-items:flex-start;gap:10px;color:#78869d;font-size:10px;line-height:1.55}
+    .newsletter-consent input{margin-top:2px;accent-color:#7b6cff;width:16px;height:16px;flex:0 0 auto}
+
     .feedback-invite{margin:34px 0 0;padding:30px;border-radius:28px;border:1px solid rgba(73,197,255,.16);background:
       radial-gradient(circle at 0% 0%,rgba(33,215,255,.10),transparent 31%),
       radial-gradient(circle at 100% 100%,rgba(221,77,255,.10),transparent 34%),
@@ -259,6 +282,8 @@
       .cta{align-items:flex-start;flex-direction:column}
       .wide{grid-template-columns:1fr 1fr}
       .feedback-grid{grid-template-columns:1fr}
+      .newsletter-invite{align-items:flex-start;flex-direction:column;padding:23px}
+      .newsletter-dialog{padding:20px;border-radius:22px}
       .feedback-fab{right:14px;bottom:14px}
       .feedback-dialog{padding:20px;border-radius:22px}
 
@@ -364,7 +389,7 @@
   <nav>
     <div class="brand"><img src="/djtoolkit-icon.png" alt="DJ Toolkit"><span>DJ TOOLKIT</span></div>
     <div class="navlinks">
-      <a href="#features">Funktionen</a><a href="#new-features">Neu</a><a href="#showcase">Bilder</a><a href="/demos.html">Live Demos</a><a href="#events">Events</a><a href="/faq.html">FAQ</a><a href="/request.html?event=demo&name=DJ%20Toolkit%20Demo">GuestWeb</a><a href="#" id="navFeedback">Feedback</a>
+      <a href="#features">Funktionen</a><a href="#new-features">Neu</a><a href="#showcase">Bilder</a><a href="/demos.html">Live Demos</a><a href="#events">Events</a><a href="/faq.html">FAQ</a><a href="#newsletter">Newsletter</a><a href="/request.html?event=demo&name=DJ%20Toolkit%20Demo">GuestWeb</a><a href="#" id="navFeedback">Feedback</a>
     </div>
     <div class="pill"><span class="dot"></span> V28 · COMPLETE DJ OS</div>
   
@@ -381,6 +406,7 @@
           <a href="/#showcase"><span>Bilder</span><span class="tag">SHOWCASE</span></a>
           <a href="/demos.html" data-page="demos"><span>Live Demos</span><span class="tag">ANIMATIONEN</span></a>
           <a href="/faq.html" data-page="faq"><span>FAQ</span><span class="tag">HILFE</span></a>
+          <a href="/?newsletter=1"><span>Newsletter</span><span class="tag">RELEASE & BETA</span></a>
           <a href="/request.html?event=demo&name=DJ%20Toolkit%20Demo"><span>GuestWeb Demo</span><span class="tag">REQUESTS</span></a>
           <a href="/?feedback=1"><span>Feedback</span><span class="tag">KONTAKT</span></a>
         </div>
@@ -439,7 +465,7 @@
 
     <section class="block" id="new-features">
       <div class="sectionhead">
-        <small>NEW IN DJ TOOLKIT</small>
+        <small>NEU IN DJ TOOLKIT</small>
         <h2>Die neuen Funktionen im Überblick.</h2>
         <p>Von Booth Safety und Genre Voting bis Light Master und Smart Matching: DJ Toolkit wächst zu einem vollständigen DJ-Betriebssystem für Vorbereitung, Live-Set, Crowd und Nachbereitung.</p>
       </div>
@@ -628,6 +654,24 @@
       <div class="feature-footnote">Die gezeigten Visuals sind Beispielansichten und können sich bis zur finalen Produktversion noch verändern.</div>
     </section>
 
+    <section class="newsletter-invite" id="newsletter">
+      <div>
+        <div class="tag">✦ DJ TOOLKIT NEWSLETTER</div>
+        <h3>Release, Beta & wichtige Updates.</h3>
+        <p>
+          Melde dich an und erfahre, <strong style="color:#fff">wann DJ Toolkit getestet werden kann</strong>,
+          wann neue Beta-Phasen starten, welche Funktionen dazukommen und wann die App veröffentlicht wird.
+        </p>
+        <div class="newsletter-badges">
+          <span>✓ App Release</span>
+          <span>✓ Beta & Testphase</span>
+          <span>✓ wichtige Updates</span>
+          <span>✓ jederzeit abmeldbar</span>
+        </div>
+      </div>
+      <button class="btn primary" id="newsletterButton" type="button">Newsletter abonnieren ↗</button>
+    </section>
+
     <section class="feedback-invite" id="feedback">
       <div>
         <div class="tag">♡ COMMUNITY FEEDBACK</div>
@@ -653,7 +697,7 @@
     </div>
   </main>
 
-  <footer><span>© DJ Toolkit · dj-toolkit.com</span><span><a href="/demos.html" style="text-decoration:none">Live Demos</a> · <a href="/faq.html" style="text-decoration:none">FAQ</a> · <a href="/?feedback=1" style="text-decoration:none">Feedback</a> · Analyze · Mix · Perform · Together</span></footer>
+  <footer><span>© DJ Toolkit · dj-toolkit.com</span><span><a href="/demos.html" style="text-decoration:none">Live Demos</a> · <a href="/faq.html" style="text-decoration:none">FAQ</a> · <a href="/?newsletter=1" style="text-decoration:none">Newsletter</a> · <a href="/?feedback=1" style="text-decoration:none">Feedback</a> · Analyze · Mix · Perform · Together</span></footer>
 </div>
 
 <button class="feedback-fab" id="feedbackButton" type="button" aria-haspopup="dialog" aria-controls="feedbackModal">
@@ -725,6 +769,52 @@
       <div class="feedback-privacy">Mit dem Absenden werden deine Angaben ausschließlich zur Bearbeitung deines Feedbacks per E-Mail an das DJ-Toolkit Team übermittelt. Die Mobilnummer ist freiwillig.</div>
       <div id="feedbackStatus" class="feedback-status" role="status" aria-live="polite"></div>
       <button id="feedbackSubmit" class="feedback-submit" type="submit">Feedback senden ↗</button>
+    </form>
+  </div>
+</div>
+
+<div class="newsletter-modal" id="newsletterModal" role="dialog" aria-modal="true" aria-labelledby="newsletterTitle">
+  <div class="newsletter-dialog">
+    <div class="feedback-top">
+      <div>
+        <small>RELEASE · BETA · UPDATES</small>
+        <h3 id="newsletterTitle">DJ Toolkit Newsletter</h3>
+        <p>Erfahre als einer der Ersten, wann du DJ Toolkit testen kannst und wann neue Versionen erscheinen.</p>
+      </div>
+      <button class="feedback-close" id="newsletterClose" type="button" aria-label="Newsletter schließen">×</button>
+    </div>
+
+    <form id="newsletterForm" class="feedback-form">
+      <input class="feedback-hp" type="text" name="website" tabindex="-1" autocomplete="off">
+
+      <div class="feedback-grid">
+        <div class="feedback-field">
+          <label for="newsletterName">NAME · OPTIONAL</label>
+          <input id="newsletterName" name="name" maxlength="100" autocomplete="name" placeholder="Dein Name">
+        </div>
+        <div class="feedback-field">
+          <label for="newsletterEmail">E-MAIL *</label>
+          <input id="newsletterEmail" name="email" type="email" maxlength="254" autocomplete="email" required placeholder="name@example.com">
+        </div>
+      </div>
+
+      <div class="feedback-field">
+        <label>WORÜBER MÖCHTEST DU INFORMIERT WERDEN?</label>
+        <div class="newsletter-options">
+          <label class="newsletter-option"><input type="checkbox" name="interests" value="release" checked> <span><strong>App Release</strong> · Veröffentlichung und große Versionen</span></label>
+          <label class="newsletter-option"><input type="checkbox" name="interests" value="beta" checked> <span><strong>Beta & Testphase</strong> · sobald Tests oder Early Access starten</span></label>
+          <label class="newsletter-option"><input type="checkbox" name="interests" value="updates" checked> <span><strong>Wichtige Updates</strong> · neue Funktionen und relevante Neuerungen</span></label>
+        </div>
+      </div>
+
+      <label class="newsletter-consent">
+        <input id="newsletterConsent" name="consent" type="checkbox" required>
+        <span>Ich möchte den DJ-Toolkit Newsletter per E-Mail erhalten. Nach der Anmeldung bekomme ich zuerst eine Bestätigungs-E-Mail. Ich kann mich jederzeit über den Abmeldelink in jeder Newsletter-Mail abmelden.</span>
+      </label>
+
+      <div class="feedback-privacy">Deine Newsletter-Anmeldung wird erst nach Bestätigung des Links in der E-Mail aktiviert (Double-Opt-in).</div>
+      <div id="newsletterStatus" class="feedback-status" role="status" aria-live="polite"></div>
+      <button id="newsletterSubmit" class="feedback-submit" type="submit">Newsletter anmelden ↗</button>
     </form>
   </div>
 </div>
@@ -815,6 +905,7 @@ document.addEventListener('keydown',event=>{
   if(event.key!=='Escape')return;
   if(featureLightbox.classList.contains('open'))closeFeatureLightbox();
   else if(feedbackModal.classList.contains('open'))closeFeedback();
+  else if(newsletterModal?.classList.contains('open'))closeNewsletter();
 });
 
 feedbackStars.forEach(button=>{
@@ -822,6 +913,72 @@ feedbackStars.forEach(button=>{
     feedbackRating=Number(button.dataset.rating);
     feedbackStars.forEach(star=>star.classList.toggle('active',Number(star.dataset.rating)<=feedbackRating));
   });
+});
+
+
+const newsletterModal=document.getElementById('newsletterModal');
+const newsletterButton=document.getElementById('newsletterButton');
+const newsletterClose=document.getElementById('newsletterClose');
+const newsletterForm=document.getElementById('newsletterForm');
+const newsletterSubmit=document.getElementById('newsletterSubmit');
+const newsletterStatus=document.getElementById('newsletterStatus');
+
+function openNewsletter(event){
+  if(event)event.preventDefault();
+  newsletterModal?.classList.add('open');
+  document.body.style.overflow='hidden';
+  setTimeout(()=>document.getElementById('newsletterEmail')?.focus(),60);
+}
+function closeNewsletter(){
+  newsletterModal?.classList.remove('open');
+  document.body.style.overflow='';
+}
+newsletterButton?.addEventListener('click',openNewsletter);
+newsletterClose?.addEventListener('click',closeNewsletter);
+newsletterModal?.addEventListener('click',event=>{if(event.target===newsletterModal)closeNewsletter()});
+
+if(new URLSearchParams(window.location.search).get('newsletter')==='1'){
+  window.addEventListener('DOMContentLoaded',()=>openNewsletter());
+}
+
+newsletterForm?.addEventListener('submit',async event=>{
+  event.preventDefault();
+  newsletterStatus.className='feedback-status';
+  newsletterStatus.textContent='';
+  newsletterSubmit.disabled=true;
+  newsletterSubmit.textContent='Anmeldung wird gesendet …';
+
+  const data=new FormData(newsletterForm);
+  const payload={
+    name:String(data.get('name')||'').trim(),
+    email:String(data.get('email')||'').trim(),
+    website:String(data.get('website')||'').trim(),
+    consent:data.get('consent')==='on',
+    interests:data.getAll('interests').map(String)
+  };
+
+  try{
+    const response=await fetch('/api/newsletter/subscribe',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(payload)
+    });
+    const body=await response.json().catch(()=>({}));
+    if(!response.ok)throw new Error(body.error||'Newsletter-Anmeldung konnte nicht gespeichert werden.');
+
+    newsletterStatus.className='feedback-status show ok';
+    newsletterStatus.textContent=body.alreadySubscribed
+      ? 'Du bist bereits für den DJ-Toolkit Newsletter angemeldet. Deine Auswahl wurde aktualisiert.'
+      : 'Fast geschafft! Bitte bestätige jetzt den Link in der E-Mail, die wir dir geschickt haben.';
+    newsletterForm.reset();
+    newsletterForm.querySelectorAll('input[name="interests"]').forEach(box=>box.checked=true);
+  }catch(error){
+    newsletterStatus.className='feedback-status show error';
+    newsletterStatus.textContent=error.message||'Newsletter-Anmeldung konnte nicht gespeichert werden.';
+  }finally{
+    newsletterSubmit.disabled=false;
+    newsletterSubmit.textContent='Newsletter anmelden ↗';
+  }
 });
 
 feedbackForm.addEventListener('submit',async event=>{
@@ -852,9 +1009,10 @@ feedbackForm.addEventListener('submit',async event=>{
     if(!response.ok) throw new Error(body.error||'Feedback konnte nicht gesendet werden.');
 
     feedbackStatus.className='feedback-status show ok';
+    const ref=body.feedbackReference ? ` · Bezug: ${body.feedbackReference}` : '';
     feedbackStatus.textContent=body.confirmationSent===false
-      ? 'Danke! Dein Feedback wurde an das DJ-Toolkit Team gesendet.'
-      : 'Danke! Dein Feedback wurde gesendet. Eine Bestätigung ist unterwegs zu deiner E-Mail-Adresse.';
+      ? `Danke! Dein Feedback wurde an das DJ-Toolkit Team gesendet.${ref}`
+      : `Danke! Dein Feedback wurde gesendet. Eine Bestätigung ist unterwegs zu deiner E-Mail-Adresse.${ref}`;
     feedbackForm.reset();
     feedbackRating=null;
     feedbackStars.forEach(star=>star.classList.remove('active'));
