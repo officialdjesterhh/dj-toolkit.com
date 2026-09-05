@@ -321,6 +321,51 @@
     @media(prefers-reduced-motion:reduce){
       .wave span,.scan,.live-pill i,.signal span,.sweep,.beam,.floor-glow,.beat-ring,.track-card:before,.score-orbit,.score-orbit:before,.score-orbit:after,.match-dot,.request-row,.bar-fill,.event-cover:after,.qr-mini,.step.active .step-dot,.packet,.planner-row,.planner-scan,.lane-wave span,.cue-flash{animation:none!important}
     }
+  
+    /* Mobile page dropdown */
+    .mobile-menu-wrap{display:none;position:relative;z-index:50}
+    .mobile-menu-button{
+      display:flex;align-items:center;gap:9px;min-height:42px;padding:0 13px;
+      border-radius:13px;border:1px solid rgba(255,255,255,.10);
+      background:rgba(8,13,22,.86);color:#f7f9ff;font:850 11px inherit;
+      backdrop-filter:blur(12px);cursor:pointer
+    }
+    .mobile-menu-button .hamburger{
+      display:grid;gap:3px;width:16px
+    }
+    .mobile-menu-button .hamburger i{
+      display:block;height:2px;border-radius:999px;background:#8fe7ff
+    }
+    .mobile-menu-button .chev{
+      font-size:10px;color:#8392a9;transition:transform .18s ease
+    }
+    .mobile-menu-wrap.open .mobile-menu-button .chev{transform:rotate(180deg)}
+    .mobile-menu-panel{
+      position:absolute;right:0;top:49px;min-width:230px;padding:8px;
+      border-radius:18px;border:1px solid rgba(255,255,255,.10);
+      background:rgba(5,9,16,.97);box-shadow:0 24px 70px rgba(0,0,0,.45);
+      backdrop-filter:blur(18px);opacity:0;visibility:hidden;transform:translateY(-6px) scale(.98);
+      transform-origin:top right;transition:.18s ease
+    }
+    .mobile-menu-wrap.open .mobile-menu-panel{
+      opacity:1;visibility:visible;transform:translateY(0) scale(1)
+    }
+    .mobile-menu-panel a{
+      display:flex;align-items:center;justify-content:space-between;gap:12px;
+      min-height:44px;padding:0 12px;border-radius:12px;text-decoration:none;
+      color:#aeb9cc;font-size:12px;font-weight:800
+    }
+    .mobile-menu-panel a:hover,.mobile-menu-panel a.active{
+      color:#fff;background:rgba(255,255,255,.055)
+    }
+    .mobile-menu-panel a .tag{
+      font-size:7px;letter-spacing:.08em;color:#65758e;font-weight:900
+    }
+    @media(max-width:760px){
+      .navlinks{display:none!important}
+      .mobile-menu-wrap{display:block}
+    }
+
   </style>
 </head>
 <body>
@@ -333,7 +378,26 @@
         <a href="/faq.html">FAQ</a>
         <a href="/?feedback=1">Feedback</a>
       </div>
-    </nav>
+    
+
+      <div class="mobile-menu-wrap" id="mobileMenuWrap">
+        <button class="mobile-menu-button" id="mobileMenuButton" type="button" aria-expanded="false" aria-controls="mobileMenuPanel">
+          <span class="hamburger" aria-hidden="true"><i></i><i></i><i></i></span>
+          <span>Menü</span>
+          <span class="chev" aria-hidden="true">⌄</span>
+        </button>
+        <div class="mobile-menu-panel" id="mobileMenuPanel">
+          <a href="/" data-page="home"><span>Startseite</span><span class="tag">HOME</span></a>
+          <a href="/#features"><span>Funktionen</span><span class="tag">FEATURES</span></a>
+          <a href="/#showcase"><span>Bilder</span><span class="tag">SHOWCASE</span></a>
+          <a href="/demos.html" data-page="demos"><span>Live Demos</span><span class="tag">ANIMATIONEN</span></a>
+          <a href="/faq.html" data-page="faq"><span>FAQ</span><span class="tag">HILFE</span></a>
+          <a href="/request.html?event=demo&name=DJ%20Toolkit%20Demo"><span>GuestWeb Demo</span><span class="tag">REQUESTS</span></a>
+          <a href="/?feedback=1"><span>Feedback</span><span class="tag">KONTAKT</span></a>
+        </div>
+      </div>
+
+      </nav>
 
     <header class="hero">
       <div class="eyebrow">DJ TOOLKIT · LIVE DEMOS</div>
@@ -662,5 +726,43 @@
       },950);
     }
   </script>
+<script>
+
+    const mobileMenuWrap=document.getElementById('mobileMenuWrap');
+    const mobileMenuButton=document.getElementById('mobileMenuButton');
+    const mobileMenuPanel=document.getElementById('mobileMenuPanel');
+
+    if(mobileMenuWrap && mobileMenuButton && mobileMenuPanel){
+      const closeMobileMenu=()=>{
+        mobileMenuWrap.classList.remove('open');
+        mobileMenuButton.setAttribute('aria-expanded','false');
+      };
+
+      mobileMenuButton.addEventListener('click',event=>{
+        event.stopPropagation();
+        const willOpen=!mobileMenuWrap.classList.contains('open');
+        mobileMenuWrap.classList.toggle('open',willOpen);
+        mobileMenuButton.setAttribute('aria-expanded',String(willOpen));
+      });
+
+      mobileMenuPanel.querySelectorAll('a').forEach(link=>{
+        link.addEventListener('click',()=>closeMobileMenu());
+      });
+
+      document.addEventListener('click',event=>{
+        if(!mobileMenuWrap.contains(event.target)) closeMobileMenu();
+      });
+
+      document.addEventListener('keydown',event=>{
+        if(event.key==='Escape') closeMobileMenu();
+      });
+
+      const path=window.location.pathname;
+      const activePage=path.endsWith('/faq.html') ? 'faq' : path.endsWith('/demos.html') ? 'demos' : 'home';
+      const activeLink=mobileMenuPanel.querySelector(`[data-page="${activePage}"]`);
+      activeLink?.classList.add('active');
+    }
+
+</script>
 </body>
 </html>
