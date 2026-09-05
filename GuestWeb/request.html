@@ -643,6 +643,8 @@
       </div>
     </header>
 
+    <div id="eventAnnouncement" style="display:none;margin:0 0 14px;padding:12px 14px;border:1px solid rgba(34,211,238,.35);border-radius:14px;background:rgba(34,211,238,.08);font-weight:700"></div>
+
     <section id="intro">
       <div class="event-chip"><span class="pulse"></span><span id="eventName">Live Event</span></div>
       <h1><span class="gradient-text">Dein Song.</span><br>Dein Wunsch.</h1>
@@ -764,6 +766,9 @@
   const params = new URLSearchParams(location.search);
   const eventID = params.get("event");
   const eventName = params.get("name") || "Live Event";
+  const brandTitle = document.querySelector(".brand-title");
+  const footerBrand = document.querySelector(".footer strong");
+  const announcementBox = document.getElementById("eventAnnouncement");
 
   const form = document.getElementById("requestForm");
   const button = document.getElementById("submitButton");
@@ -802,6 +807,34 @@
   const genreVoteKey = `djtoolkit-genre-${eventID}`;
   let selectedGenre = localStorage.getItem(genreVoteKey) || "";
   const fallbackGenres = ["House","Tech House","EDM","Techno","90s","2000s","Pop","Hip-Hop"];
+
+  async function loadV10EventPresentation() {
+    if (!eventID) return;
+    try {
+      const [brandRes, announcementRes] = await Promise.all([
+        fetch(`/api/events/${encodeURIComponent(eventID)}/branding`, { cache: "no-store" }),
+        fetch(`/api/events/${encodeURIComponent(eventID)}/announcements`, { cache: "no-store" })
+      ]);
+      if (brandRes.ok) {
+        const brand = await brandRes.json();
+        if (brand?.displayName) {
+          brandTitle.textContent = brand.displayName;
+          footerBrand.textContent = brand.footerText || brand.displayName;
+          document.title = `${brand.displayName} – Guest Requests`;
+        }
+        if (brand?.accentHex) document.documentElement.style.setProperty("--cyan", `#${brand.accentHex}`);
+      }
+      if (announcementRes.ok) {
+        const rows = await announcementRes.json();
+        const next = Array.isArray(rows) ? rows.find(item => !item.completed) : null;
+        if (next?.title) {
+          announcementBox.textContent = `📣 ${next.title}${next.note ? ` · ${next.note}` : ""}`;
+          announcementBox.style.display = "block";
+        }
+      }
+    } catch (_) { /* guest page remains fully usable offline from these extras */ }
+  }
+
 
   function renderGenreVotes(genres, voteRows = []) {
     const votes = new Map((voteRows || []).map(item => [item.genre, Number(item.votes || 0)]));
@@ -870,6 +903,7 @@
   }
 
   document.getElementById("eventName").textContent = eventName;
+  loadV10EventPresentation();
   document.title = `${eventName} · Musikwunsch`;
 
   if (!eventID) {
