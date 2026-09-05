@@ -37,6 +37,9 @@ const FEEDBACK_RATE_WINDOW_MS = 15 * 60 * 1000;
 const MAX_FEEDBACK_PER_WINDOW = 5;
 const NEWSLETTER_RATE_WINDOW_MS = 15 * 60 * 1000;
 const MAX_NEWSLETTER_SIGNUPS_PER_WINDOW = 5;
+const NEWSLETTER_CONSENT_VERSION = "newsletter-consent-v1-2026-09-05";
+const NEWSLETTER_CONSENT_STATEMENT = "Ich möchte den DJ-Toolkit Newsletter per E-Mail erhalten. Die Anmeldung wird erst nach Bestätigung des Double-Opt-in-Links aktiviert. Ich kann meine Einwilligung jederzeit über den Abmeldelink mit Wirkung für die Zukunft widerrufen.";
+const NEWSLETTER_PENDING_RETENTION_DAYS = 14;
 
 const catalogSearchCache = new Map();
 const catalogGenreCache = new Map();
@@ -99,9 +102,14 @@ async function initDatabase() {
       confirmed_at TIMESTAMPTZ,
       unsubscribed_at TIMESTAMPTZ,
       consent_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      consent_text_version TEXT,
+      consent_statement TEXT,
       source TEXT NOT NULL DEFAULT 'dj-toolkit.com'
     )
   `);
+
+  await db.query(`ALTER TABLE newsletter_subscribers ADD COLUMN IF NOT EXISTS consent_text_version TEXT`);
+  await db.query(`ALTER TABLE newsletter_subscribers ADD COLUMN IF NOT EXISTS consent_statement TEXT`);
 
   await db.query(`CREATE INDEX IF NOT EXISTS idx_newsletter_status ON newsletter_subscribers(status)`);
   await db.query(`CREATE INDEX IF NOT EXISTS idx_newsletter_confirm_hash ON newsletter_subscribers(confirm_token_hash)`);
@@ -177,6 +185,8 @@ function rowToNewsletterSubscriber(row) {
     confirmedAt: row.confirmed_at ? new Date(row.confirmed_at).toISOString() : null,
     unsubscribedAt: row.unsubscribed_at ? new Date(row.unsubscribed_at).toISOString() : null,
     consentAt: row.consent_at ? new Date(row.consent_at).toISOString() : null,
+    consentTextVersion: row.consent_text_version || null,
+    consentStatement: row.consent_statement || null,
     source: row.source || "dj-toolkit.com"
   };
 }
@@ -224,9 +234,9 @@ async function upsertNewsletterSubscriber(subscriber) {
   const result = await db.query(`
     INSERT INTO newsletter_subscribers (
       id,email,name,interests,status,confirm_token_hash,unsubscribe_token,
-      created_at,updated_at,confirmed_at,unsubscribed_at,consent_at,source
+      created_at,updated_at,confirmed_at,unsubscribed_at,consent_at,consent_text_version,consent_statement,source
     )
-    VALUES ($1,$2,$3,$4::jsonb,$5,$6,$7,$8,$9,$10,$11,$12,$13)
+    VALUES ($1,$2,$3,$4::jsonb,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
     ON CONFLICT (email) DO UPDATE SET
       name=EXCLUDED.name,
       interests=EXCLUDED.interests,
@@ -237,6 +247,8 @@ async function upsertNewsletterSubscriber(subscriber) {
       confirmed_at=EXCLUDED.confirmed_at,
       unsubscribed_at=EXCLUDED.unsubscribed_at,
       consent_at=EXCLUDED.consent_at,
+      consent_text_version=EXCLUDED.consent_text_version,
+      consent_statement=EXCLUDED.consent_statement,
       source=EXCLUDED.source
     RETURNING *
   `, [
@@ -252,6 +264,8 @@ async function upsertNewsletterSubscriber(subscriber) {
     subscriber.confirmedAt,
     subscriber.unsubscribedAt,
     subscriber.consentAt,
+    subscriber.consentTextVersion || NEWSLETTER_CONSENT_VERSION,
+    subscriber.consentStatement || NEWSLETTER_CONSENT_STATEMENT,
     subscriber.source || "dj-toolkit.com"
   ]);
 
@@ -520,13 +534,20 @@ function buildNewsletterMessage({
     `${ctaLabel}: ${ctaURL}`,
     "",
     isTest ? "Dies ist eine Testmail aus der DJ-Toolkit Newsletter-Verwaltung." : "Newsletter abbestellen:",
-    isTest ? null : unsubscribeURL
+    isTest ? null : unsubscribeURL,
+    "",
+    `Datenschutz: ${legalMailLinks().datenschutz}`,
+    `Impressum: ${legalMailLinks().impressum}`,
+    `AGB: ${legalMailLinks().agb}`
   ].filter(Boolean).join("\n");
 
+  const legal = legalMailLinks();
   const footer = isTest
-    ? `Dies ist eine <strong style="color:#c8b8ff">Testmail</strong> aus der DJ-Toolkit Newsletter-Verwaltung. Sie wurde nicht an die Newsletter-Liste gesendet.`
+    ? `Dies ist eine <strong style="color:#c8b8ff">Testmail</strong> aus der DJ-Toolkit Newsletter-Verwaltung. Sie wurde nicht an die Newsletter-Liste gesendet.
+       <br><a href="${escapeHTML(legal.datenschutz)}" style="color:#8edfff">Datenschutz</a> · <a href="${escapeHTML(legal.impressum)}" style="color:#8edfff">Impressum</a> · <a href="${escapeHTML(legal.agb)}" style="color:#8edfff">AGB</a>`
     : `Du erhältst diese Nachricht, weil du den DJ-Toolkit Newsletter bestätigt hast.
-       <a href="${escapeHTML(unsubscribeURL)}" style="color:#8edfff">Newsletter abbestellen</a>`;
+       <a href="${escapeHTML(unsubscribeURL)}" style="color:#8edfff">Newsletter abbestellen</a>
+       <br><a href="${escapeHTML(legal.datenschutz)}" style="color:#8edfff">Datenschutz</a> · <a href="${escapeHTML(legal.impressum)}" style="color:#8edfff">Impressum</a> · <a href="${escapeHTML(legal.agb)}" style="color:#8edfff">AGB</a>`;
 
   const html = `<!doctype html><html lang="de"><body style="margin:0;background:#05070d;color:#f7f9ff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif">
     <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#05070d"><tr><td align="center" style="padding:36px 16px">
@@ -555,6 +576,42 @@ function buildNewsletterMessage({
   </body></html>`;
 
   return { subject, text, html };
+}
+
+
+async function cleanupExpiredPendingNewsletterSubscribers() {
+  if (db) {
+    const result = await db.query(`
+      DELETE FROM newsletter_subscribers
+      WHERE status='pending'
+        AND created_at < NOW() - ($1::text || ' days')::interval
+    `, [String(NEWSLETTER_PENDING_RETENTION_DAYS)]);
+    if (result.rowCount) {
+      console.log(`Newsletter cleanup: removed ${result.rowCount} expired pending signup(s).`);
+    }
+    return Number(result.rowCount || 0);
+  }
+
+  const store = newsletterStore();
+  const cutoff = Date.now() - NEWSLETTER_PENDING_RETENTION_DAYS * 24 * 60 * 60 * 1000;
+  const before = store.subscribers.length;
+  store.subscribers = store.subscribers.filter(item => {
+    if (item?.status !== "pending") return true;
+    const created = Date.parse(item?.createdAt || "");
+    return !Number.isFinite(created) || created >= cutoff;
+  });
+  const removed = before - store.subscribers.length;
+  if (removed) saveNewsletterStore(store);
+  return removed;
+}
+
+function legalMailLinks() {
+  const base = publicBaseURL();
+  return {
+    impressum: `${base}/impressum.html`,
+    datenschutz: `${base}/datenschutz.html`,
+    agb: `${base}/agb.html`
+  };
 }
 
 function tokenHash(value) {
@@ -1750,6 +1807,8 @@ app.post("/api/newsletter/subscribe", async (req, res) => {
     confirmedAt: null,
     unsubscribedAt: null,
     consentAt: now,
+    consentTextVersion: NEWSLETTER_CONSENT_VERSION,
+    consentStatement: NEWSLETTER_CONSENT_STATEMENT,
     source: "dj-toolkit.com"
   };
 
@@ -1774,6 +1833,9 @@ app.post("/api/newsletter/subscribe", async (req, res) => {
     "",
     "Erst nach der Bestätigung erhältst du Newsletter von uns.",
     "",
+    `Datenschutz: ${legalMailLinks().datenschutz}`,
+    `Impressum: ${legalMailLinks().impressum}`,
+    "",
     "DJ Toolkit · Mehr Musik. Bessere Nächte."
   ].join("\n");
 
@@ -1789,6 +1851,13 @@ app.post("/api/newsletter/subscribe", async (req, res) => {
           <p style="color:#aebbd0;line-height:1.7">du möchtest Neuigkeiten zu <strong style="color:#fff">${escapeHTML(interestText)}</strong> erhalten. Bitte bestätige deine Anmeldung mit einem Klick.</p>
           <div style="padding:18px 0 8px"><a href="${escapeHTML(confirmURL)}" style="display:inline-block;padding:14px 20px;border-radius:14px;background:linear-gradient(105deg,#168fff,#785bff 68%,#b952ff);color:#fff;text-decoration:none;font-weight:900">Newsletter bestätigen →</a></div>
           <p style="margin-top:22px;color:#64728a;font-size:10px;line-height:1.6">Ohne Bestätigung wird deine Adresse nicht für Newsletter aktiviert.</p>
+          <p style="margin-top:16px;color:#526178;font-size:9px;line-height:1.6">
+            <a href="${escapeHTML(legalMailLinks().datenschutz)}" style="color:#8edfff">Datenschutz</a>
+            &nbsp;·&nbsp;
+            <a href="${escapeHTML(legalMailLinks().impressum)}" style="color:#8edfff">Impressum</a>
+            &nbsp;·&nbsp;
+            <a href="${escapeHTML(legalMailLinks().agb)}" style="color:#8edfff">AGB</a>
+          </p>
         </td></tr>
       </table>
     </td></tr></table>
@@ -1855,6 +1924,9 @@ app.get("/api/newsletter/confirm", async (req, res) => {
     "Du kannst dich jederzeit abmelden:",
     unsubscribeURL,
     "",
+    `Datenschutz: ${legalMailLinks().datenschutz}`,
+    `Impressum: ${legalMailLinks().impressum}`,
+    "",
     "Mehr Musik. Bessere Nächte."
   ].join("\n");
 
@@ -1864,6 +1936,13 @@ app.get("/api/newsletter/confirm", async (req, res) => {
       <h1 style="font-size:31px;margin:9px 0 14px">Du bist dabei.</h1>
       <p style="color:#aebbd0;line-height:1.7">Deine Anmeldung ist bestätigt. Wir halten dich über Releases, Beta-/Testphasen und wichtige DJ-Toolkit Updates auf dem Laufenden.</p>
       <p style="margin-top:24px;color:#607089;font-size:10px;line-height:1.6">Du möchtest keine Newsletter mehr? <a href="${escapeHTML(unsubscribeURL)}" style="color:#8edfff">Hier abmelden</a>.</p>
+      <p style="margin-top:12px;color:#526178;font-size:9px;line-height:1.6">
+        <a href="${escapeHTML(legalMailLinks().datenschutz)}" style="color:#8edfff">Datenschutz</a>
+        &nbsp;·&nbsp;
+        <a href="${escapeHTML(legalMailLinks().impressum)}" style="color:#8edfff">Impressum</a>
+        &nbsp;·&nbsp;
+        <a href="${escapeHTML(legalMailLinks().agb)}" style="color:#8edfff">AGB</a>
+      </p>
     </div></div>
   </body></html>`;
 
@@ -1959,7 +2038,10 @@ app.get("/api/admin/newsletter/subscribers", async (req, res) => {
         interests: newsletterInterests(item.interests),
         createdAt: item.createdAt,
         confirmedAt: item.confirmedAt,
-        unsubscribedAt: item.unsubscribedAt
+        unsubscribedAt: item.unsubscribedAt,
+        consentAt: item.consentAt,
+        consentTextVersion: item.consentTextVersion,
+        source: item.source
       }))
     });
   } catch (error) {
@@ -2118,7 +2200,7 @@ app.get("/health", (_, res) => {
   res.set("Cache-Control", "no-store");
   res.json({
     ok: true,
-    version: "10.8.0",
+    version: "10.9.0",
     onlineAnalysis: true,
     catalogPreviewAudio: true,
     djMetadata: true,
@@ -2135,6 +2217,9 @@ app.get("/health", (_, res) => {
     newsletterDoubleOptIn: true,
     newsletterCampaignAPI: true,
     newsletterAdminDashboard: true,
+    newsletterConsentProof: true,
+    newsletterPendingCleanupDays: NEWSLETTER_PENDING_RETENTION_DAYS,
+    legalLinksInNewsletter: true,
     newsletterCampaignHistory: true,
     newsletterTestSend: true,
     newsletterUnsubscribe: true,
@@ -2837,7 +2922,14 @@ app.put("/api/events/:eventID/team", (req, res) => {
 
 
 initDatabase()
-  .then(() => {
+  .then(async () => {
+    await cleanupExpiredPendingNewsletterSubscribers();
+    setInterval(() => {
+      cleanupExpiredPendingNewsletterSubscribers().catch(error =>
+        console.warn("newsletter pending cleanup failed", error?.message || error)
+      );
+    }, 24 * 60 * 60 * 1000).unref?.();
+
     app.listen(port, () => {
       console.log(`DJToolkit request server running on http://localhost:${port}`);
       console.log(`Persistent database: ${db ? "Postgres" : "local JSON fallback"}`);
