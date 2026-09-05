@@ -66,6 +66,10 @@ function defaultEventState(eventID) {
     clientPortalTokenHash: null,
     handover: null,
     playedTracks: [],
+    remoteSnapshot: null,
+    announcements: [],
+    branding: { displayName: "DJ TOOLKIT", accentHex: "22D3EE", footerText: "Powered by DJ Toolkit", customDomain: "" },
+    team: [],
     updatedAt: new Date().toISOString()
   };
 }
@@ -564,7 +568,7 @@ app.get("/health", (_, res) => {
   res.set("Cache-Control", "no-store");
   res.json({
     ok: true,
-    version: "9.0",
+    version: "10.0",
     onlineAnalysis: true,
     catalogPreviewAudio: true,
     djMetadata: true,
@@ -575,6 +579,12 @@ app.get("/health", (_, res) => {
     requestETA: true,
     multiDJHandover: true,
       sharedPlayedTrackLog: true,
+    workflowOS: true,
+    multiDeviceSync: true,
+    announcements: true,
+    whiteLabelGuestWeb: true,
+    teamAccounts: true,
+    remoteManager: true,
     requestModeration: true,
     djMetadataProviders: process.env.GETSONGBPM_API_KEY ? ["Beatport", "GetSongBPM"] : ["Beatport"]
   });
@@ -1031,6 +1041,99 @@ app.put("/api/events/:eventID/handover", (req, res) => {
   saveEventState(req.params.eventID, { ...state, handover });
   res.json(handover);
 });
+
+
+// V10 COMPLETE DJ OS ---------------------------------------------------------
+function cleanAnnouncements(value) {
+  if (!Array.isArray(value)) return [];
+  return value.slice(0, 80).map(item => ({
+    id: String(item?.id || crypto.randomUUID()).slice(0, 80),
+    title: String(item?.title || "").trim().slice(0, 180),
+    time: String(item?.time || new Date().toISOString()).slice(0, 64),
+    note: String(item?.note || "").trim().slice(0, 400),
+    completed: Boolean(item?.completed)
+  })).filter(item => item.title);
+}
+
+function cleanBranding(value) {
+  const hex = String(value?.accentHex || "22D3EE").replace(/[^0-9a-f]/gi, "").slice(0, 6) || "22D3EE";
+  return {
+    displayName: String(value?.displayName || "DJ TOOLKIT").trim().slice(0, 80) || "DJ TOOLKIT",
+    accentHex: hex,
+    footerText: String(value?.footerText || "Powered by DJ Toolkit").trim().slice(0, 140),
+    customDomain: String(value?.customDomain || "").trim().slice(0, 180)
+  };
+}
+
+function cleanTeam(value) {
+  if (!Array.isArray(value)) return [];
+  return value.slice(0, 40).map(item => ({
+    id: String(item?.id || crypto.randomUUID()).slice(0, 80),
+    name: String(item?.name || "").trim().slice(0, 100),
+    role: String(item?.role || "DJ").trim().slice(0, 60),
+    email: String(item?.email || "").trim().slice(0, 160)
+  })).filter(item => item.name);
+}
+
+app.get("/api/events/:eventID/remote-state", (req, res) => {
+  const state = getEventState(req.params.eventID);
+  res.set("Cache-Control", "no-store");
+  res.json(state.remoteSnapshot || null);
+});
+
+app.put("/api/events/:eventID/remote-state", (req, res) => {
+  const state = getEventState(req.params.eventID);
+  const row = {
+    eventID: req.params.eventID,
+    deviceName: String(req.body?.deviceName || "Device").trim().slice(0, 100),
+    bpm: optionalFiniteNumber(req.body?.bpm),
+    musicalKey: String(req.body?.musicalKey || "").trim().slice(0, 50) || null,
+    energy: optionalFiniteNumber(req.body?.energy),
+    currentTrack: String(req.body?.currentTrack || "").trim().slice(0, 240) || null,
+    requestCount: Math.max(0, Math.min(10000, Number(req.body?.requestCount || 0))),
+    announcement: String(req.body?.announcement || "").trim().slice(0, 180) || null,
+    updatedAt: new Date().toISOString()
+  };
+  saveEventState(req.params.eventID, { ...state, remoteSnapshot: row });
+  res.json(row);
+});
+
+app.get("/api/events/:eventID/announcements", (req, res) => {
+  const state = getEventState(req.params.eventID);
+  res.json(cleanAnnouncements(state.announcements));
+});
+
+app.put("/api/events/:eventID/announcements", (req, res) => {
+  const state = getEventState(req.params.eventID);
+  const rows = cleanAnnouncements(req.body);
+  saveEventState(req.params.eventID, { ...state, announcements: rows });
+  res.json(rows);
+});
+
+app.get("/api/events/:eventID/branding", (req, res) => {
+  const state = getEventState(req.params.eventID);
+  res.json(cleanBranding(state.branding));
+});
+
+app.put("/api/events/:eventID/branding", (req, res) => {
+  const state = getEventState(req.params.eventID);
+  const branding = cleanBranding(req.body);
+  saveEventState(req.params.eventID, { ...state, branding });
+  res.json(branding);
+});
+
+app.get("/api/events/:eventID/team", (req, res) => {
+  const state = getEventState(req.params.eventID);
+  res.json(cleanTeam(state.team));
+});
+
+app.put("/api/events/:eventID/team", (req, res) => {
+  const state = getEventState(req.params.eventID);
+  const team = cleanTeam(req.body);
+  saveEventState(req.params.eventID, { ...state, team });
+  res.json(team);
+});
+
 
 app.listen(port, () => {
   console.log(`DJToolkit request server running on http://localhost:${port}`);
