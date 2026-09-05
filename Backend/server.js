@@ -4,7 +4,6 @@ import path from "path";
 import { fileURLToPath } from "url";
 import crypto from "crypto";
 import fs from "fs";
-import nodemailer from "nodemailer";
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -252,21 +251,47 @@ function escapeHTML(value) {
     .replace(/'/g, "&#39;");
 }
 
-function feedbackTransport() {
-  const host = String(process.env.SMTP_HOST || "").trim();
-  const user = String(process.env.SMTP_USER || "").trim();
-  const pass = String(process.env.SMTP_PASS || "").trim();
-  const port = Math.max(1, Math.min(65535, Number(process.env.SMTP_PORT || 587)));
-  const secure = String(process.env.SMTP_SECURE || "").toLowerCase() === "true" || port === 465;
+function feedbackAPIKey() {
+  // Backward compatible: if you already stored your Resend key as SMTP_PASS
+  // in Render, V10.4 will use it automatically. RESEND_API_KEY is preferred.
+  return String(process.env.RESEND_API_KEY || process.env.SMTP_PASS || "").trim();
+}
 
-  if (!host || !user || !pass) return null;
+async function sendFeedbackEmail(payload) {
+  const apiKey = feedbackAPIKey();
+  if (!apiKey) {
+    const error = new Error("Resend API key is not configured.");
+    error.code = "RESEND_NOT_CONFIGURED";
+    throw error;
+  }
 
-  return nodemailer.createTransport({
-    host,
-    port,
-    secure,
-    auth: { user, pass }
-  });
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 12000);
+
+  try {
+    const response = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      signal: controller.signal,
+      headers: {
+        "Authorization": `Bearer ${apiKey}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(payload)
+    });
+
+    const body = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      const message = body?.message || body?.error || `Resend API status ${response.status}`;
+      const error = new Error(String(message));
+      error.status = response.status;
+      error.details = body;
+      throw error;
+    }
+
+    return body;
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 async function lookupCatalogGenre(artist, title, country = "DE") {
@@ -796,17 +821,15 @@ app.post("/api/feedback", async (req, res) => {
     return res.status(400).json({ error: "Das Feedback wurde vom Spam-Schutz blockiert." });
   }
 
-  const transport = feedbackTransport();
-  if (!transport) {
+  if (!feedbackAPIKey()) {
     return res.status(503).json({
       error: "Der Feedback-Mailversand ist noch nicht konfiguriert.",
-      code: "SMTP_NOT_CONFIGURED"
+      code: "RESEND_NOT_CONFIGURED"
     });
   }
 
   const feedbackTo = String(process.env.FEEDBACK_TO || "info@dj-toolkit.com").trim();
-  const smtpUser = String(process.env.SMTP_USER || "").trim();
-  const fromAddress = String(process.env.FEEDBACK_FROM || smtpUser || "info@dj-toolkit.com").trim();
+  const fromAddress = String(process.env.FEEDBACK_FROM || "info@dj-toolkit.com").trim();
   const fromName = String(process.env.FEEDBACK_FROM_NAME || "DJ Toolkit").trim().slice(0, 80);
   const from = `${fromName} <${fromAddress}>`;
   const submittedAt = new Date().toISOString();
@@ -876,18 +899,18 @@ app.post("/api/feedback", async (req, res) => {
 
   try {
     const results = await Promise.allSettled([
-      transport.sendMail({
+      sendFeedbackEmail({
         from,
-        to: feedbackTo,
-        replyTo: email,
+        to: [feedbackTo],
+        reply_to: email,
         subject: `DJ Toolkit Feedback · ${category}${rating ? ` · ${rating}/5` : ""}`,
         text: internalText,
         html: internalHTML
       }),
-      transport.sendMail({
+      sendFeedbackEmail({
         from,
-        to: email,
-        replyTo: feedbackTo,
+        to: [email],
+        reply_to: feedbackTo,
         subject: "Danke für dein Feedback · DJ Toolkit",
         text: thanksText,
         html: thanksHTML
@@ -921,7 +944,7 @@ app.get("/health", (_, res) => {
   res.set("Cache-Control", "no-store");
   res.json({
     ok: true,
-    version: "10.3",
+    version: "10.4",
     onlineAnalysis: true,
     catalogPreviewAudio: true,
     djMetadata: true,
@@ -934,6 +957,7 @@ app.get("/health", (_, res) => {
     catalogGenreEnrichment: true,
     websiteFeedback: true,
     feedbackConfirmationEmail: true,
+    resendHTTPSAPI: true,
     clientPortal: true,
     requestETA: true,
     multiDJHandover: true,
