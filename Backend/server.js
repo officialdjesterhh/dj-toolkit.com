@@ -12,6 +12,10 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const webDir = path.resolve(__dirname, "../GuestWeb");
 const storePath = path.resolve(__dirname, "requests.json");
+const eventStatePath = path.resolve(__dirname, "events.json");
+const requestRateBuckets = new Map();
+const RATE_WINDOW_MS = 60 * 1000;
+const MAX_REQUESTS_PER_MINUTE = 12;
 
 const catalogSearchCache = new Map();
 const djMetadataCache = new Map();
@@ -33,6 +37,126 @@ function readStore() {
 
 function writeStore(rows) {
   fs.writeFileSync(storePath, JSON.stringify(rows, null, 2));
+}
+
+function readEventState() {
+  try {
+    if (!fs.existsSync(eventStatePath)) return {};
+    const value = JSON.parse(fs.readFileSync(eventStatePath, "utf8"));
+    return value && typeof value === "object" && !Array.isArray(value) ? value : {};
+  } catch {
+    return {};
+  }
+}
+
+function writeEventState(value) {
+  fs.writeFileSync(eventStatePath, JSON.stringify(value, null, 2));
+}
+
+function defaultEventState(eventID) {
+  return {
+    eventID,
+    eventName: null,
+    mustPlay: [],
+    doNotPlay: [],
+    preferredGenres: [],
+    timeline: [],
+    genreVotes: {},
+    genreVoterHashes: {},
+    clientPortalTokenHash: null,
+    handover: null,
+    playedTracks: [],
+    updatedAt: new Date().toISOString()
+  };
+}
+
+function getEventState(eventID) {
+  const all = readEventState();
+  return all[eventID] || defaultEventState(eventID);
+}
+
+function saveEventState(eventID, next) {
+  const all = readEventState();
+  all[eventID] = { ...defaultEventState(eventID), ...next, eventID, updatedAt: new Date().toISOString() };
+  writeEventState(all);
+  return all[eventID];
+}
+
+function arrayOfStrings(value, maxItems = 80, maxLength = 180) {
+  if (!Array.isArray(value)) return [];
+  return value
+    .slice(0, maxItems)
+    .map(item => String(item || "").trim().slice(0, maxLength))
+    .filter(Boolean);
+}
+
+function cleanTimeline(value) {
+  if (!Array.isArray(value)) return [];
+  return value.slice(0, 80).map(item => ({
+    id: String(item?.id || crypto.randomUUID()).slice(0, 80),
+    title: String(item?.title || "").trim().slice(0, 140),
+    time: String(item?.time || "").slice(0, 64),
+    note: String(item?.note || "").trim().slice(0, 300) || null,
+    isDone: Boolean(item?.isDone)
+  })).filter(item => item.title && item.time);
+}
+
+function requestRateAllowed(req, eventID) {
+  const address = req.headers["x-forwarded-for"]?.toString().split(",")[0]?.trim()
+    || req.socket?.remoteAddress || "unknown";
+  const key = `${eventID}:${address}`;
+  const now = Date.now();
+  const current = (requestRateBuckets.get(key) || []).filter(ts => now - ts < RATE_WINDOW_MS);
+  if (current.length >= MAX_REQUESTS_PER_MINUTE) {
+    requestRateBuckets.set(key, current);
+    return false;
+  }
+  current.push(now);
+  requestRateBuckets.set(key, current);
+  return true;
+}
+
+function looksLikeSpam(...values) {
+  const text = values.map(value => String(value || "")).join(" ").trim();
+  if (!text) return false;
+  const urls = (text.match(/https?:\/\//gi) || []).length;
+  const repeated = /(.)\1{14,}/i.test(text);
+  const excessiveCaps = text.length > 35 && (text.match(/[A-ZÄÖÜ]/g) || []).length / text.length > 0.72;
+  return urls > 1 || repeated || excessiveCaps;
+}
+
+function cleanPortalState(state) {
+  return {
+    eventID: state.eventID,
+    eventName: state.eventName || null,
+    mustPlay: arrayOfStrings(state.mustPlay),
+    doNotPlay: arrayOfStrings(state.doNotPlay),
+    preferredGenres: arrayOfStrings(state.preferredGenres, 30, 80),
+    timeline: cleanTimeline(state.timeline),
+    updatedAt: state.updatedAt
+  };
+}
+
+function portalTokenMatches(state, rawToken) {
+  const token = String(rawToken || "").trim();
+  if (!token || !state.clientPortalTokenHash) return false;
+  return crypto.timingSafeEqual(
+    Buffer.from(hashVoterToken(token)),
+    Buffer.from(state.clientPortalTokenHash)
+  );
+}
+
+function normalizeRequestKey(artist, title) {
+  return `${normalizeLookupText(artist)}::${normalizeLookupText(title)}`;
+}
+
+function sanitizeRowForClient(row) {
+  const { voterHashes, supporters, ...safe } = row;
+  return safe;
+}
+
+function hashVoterToken(token) {
+  return crypto.createHash("sha256").update(String(token)).digest("hex");
 }
 
 function optionalFiniteNumber(value) {
@@ -394,6 +518,7 @@ app.get("/api/catalog-search", async (req, res) => {
         title: String(item.trackName).slice(0, 160),
         artist: String(item.artistName).slice(0, 160),
         album: item.collectionName ? String(item.collectionName).slice(0, 180) : null,
+        genre: item.primaryGenreName ? String(item.primaryGenreName).slice(0, 100) : null,
         artworkURL: enhancedArtworkURL(item.artworkUrl100),
         storeURL: cleanURL(item.trackViewUrl),
         previewURL: cleanURL(item.previewUrl),
@@ -439,10 +564,18 @@ app.get("/health", (_, res) => {
   res.set("Cache-Control", "no-store");
   res.json({
     ok: true,
-    version: "8.0",
+    version: "9.0",
     onlineAnalysis: true,
     catalogPreviewAudio: true,
     djMetadata: true,
+    requestVoting: true,
+    duplicateConsolidation: true,
+    guestGenreVoting: true,
+    clientPortal: true,
+    requestETA: true,
+    multiDJHandover: true,
+      sharedPlayedTrackLog: true,
+    requestModeration: true,
     djMetadataProviders: process.env.GETSONGBPM_API_KEY ? ["Beatport", "GetSongBPM"] : ["Beatport"]
   });
 });
@@ -484,7 +617,7 @@ app.get("/api/events/:eventID/requests", (req, res) => {
     .filter(row => row.eventID === req.params.eventID)
     .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
-  res.json(rows);
+  res.json(rows.map(sanitizeRowForClient));
 });
 
 app.get("/api/events/:eventID/public-summary", (req, res) => {
@@ -494,21 +627,31 @@ app.get("/api/events/:eventID/public-summary", (req, res) => {
 
   const counts = new Map();
   for (const row of rows) {
-    const key = `${String(row.artist).trim().toLowerCase()}::${String(row.title).trim().toLowerCase()}`;
+    const key = normalizeRequestKey(row.artist, row.title);
     const current = counts.get(key) || {
+      representativeRequestID: row.id,
       artist: row.artist,
       title: row.title,
-      count: 0
+      count: 0,
+      votes: 0
     };
-    current.count += 1;
+    const rowVotes = Math.max(1, Number(row.voteCount || 1));
+    current.count += Math.max(1, Number(row.duplicateCount || 1));
+    if (!current.maxSingleVotes || rowVotes > current.maxSingleVotes) {
+      current.representativeRequestID = row.id;
+      current.maxSingleVotes = rowVotes;
+    }
+    current.votes += rowVotes;
     counts.set(key, current);
   }
 
   const topRequests = [...counts.values()]
-    .sort((a, b) => b.count - a.count || a.title.localeCompare(b.title))
+    .map(({ maxSingleVotes, ...item }) => item)
+    .sort((a, b) => b.votes - a.votes || b.count - a.count || a.title.localeCompare(b.title))
     .slice(0, 8);
 
-  res.json({ requestCount: rows.length, topRequests });
+  const totalRequests = rows.reduce((sum, row) => sum + Math.max(1, Number(row.duplicateCount || 1)), 0);
+  res.json({ requestCount: totalRequests, topRequests });
 });
 
 app.get("/api/requests/:requestID/public", (req, res) => {
@@ -520,7 +663,11 @@ app.get("/api/requests/:requestID/public", (req, res) => {
     artist: row.artist,
     title: row.title,
     status: row.status,
-    createdAt: row.createdAt
+    createdAt: row.createdAt,
+    voteCount: Math.max(1, Number(row.voteCount || 1)),
+    duplicateCount: Math.max(1, Number(row.duplicateCount || 1)),
+    estimatedMinutes: Number.isFinite(Number(row.estimatedMinutes)) ? Number(row.estimatedMinutes) : null,
+    publicStatusMessage: row.publicStatusMessage || null
   });
 });
 
@@ -531,66 +678,105 @@ app.post("/api/events/:eventID/requests", (req, res) => {
 
   if (honeypot) {
     return res.status(201).json({
-      id: crypto.randomUUID(),
-      eventID: req.params.eventID,
-      artist,
-      title,
-      status: "new",
-      createdAt: new Date().toISOString()
+      id: crypto.randomUUID(), eventID: req.params.eventID, artist, title,
+      status: "new", createdAt: new Date().toISOString(), voteCount: 1, duplicateCount: 1
     });
   }
 
-  if (!artist || !title) {
-    return res.status(400).json({ error: "artist and title are required" });
+  if (!artist || !title) return res.status(400).json({ error: "artist and title are required" });
+  if (!requestRateAllowed(req, req.params.eventID)) {
+    return res.status(429).json({ error: "Zu viele Wünsche in kurzer Zeit. Bitte kurz warten." });
+  }
+  if (looksLikeSpam(artist, title, req.body.guestName, req.body.message)) {
+    return res.status(400).json({ error: "Der Wunsch wurde vom Spam-Schutz blockiert." });
+  }
+
+  const rows = readStore();
+  const requestKey = normalizeRequestKey(artist, title);
+  const existingIndex = rows.findIndex(row =>
+    row.eventID === req.params.eventID &&
+    row.status !== "declined" && row.status !== "played" &&
+    normalizeRequestKey(row.artist, row.title) === requestKey
+  );
+
+  // Submitting the same track again acts as crowd support instead of creating
+  // 15 visually identical cards in the DJ inbox.
+  if (existingIndex >= 0) {
+    const existing = rows[existingIndex];
+    existing.duplicateCount = Math.max(1, Number(existing.duplicateCount || 1)) + 1;
+    existing.voteCount = Math.max(1, Number(existing.voteCount || 1)) + 1;
+    existing.lastRequestAt = new Date().toISOString();
+    existing.supporters = Array.isArray(existing.supporters) ? existing.supporters.slice(-49) : [];
+    existing.supporters.push({
+      guestName: String(req.body.guestName || "").trim().slice(0, 80) || null,
+      message: String(req.body.message || "").trim().slice(0, 300) || null,
+      createdAt: new Date().toISOString()
+    });
+    rows[existingIndex] = existing;
+    writeStore(rows);
+    return res.status(200).json({ ...sanitizeRowForClient(existing), mergedDuplicate: true });
   }
 
   const row = {
     id: crypto.randomUUID(),
     eventID: req.params.eventID,
     eventName: String(req.body.eventName || "").trim().slice(0, 120) || null,
-    artist: artist.slice(0, 120),
-    title: title.slice(0, 120),
+    artist: artist.slice(0, 120), title: title.slice(0, 120),
     guestName: String(req.body.guestName || "").trim().slice(0, 80) || null,
     message: String(req.body.message || "").trim().slice(0, 300) || null,
-    createdAt: new Date().toISOString(),
-    status: "new",
-    bpm: null,
-    musicalKey: null,
-    bpmConfidence: null,
-    keyConfidence: null,
-    energyLevel: null,
-    waveformSamples: null,
-    analysisUpdatedAt: null,
-    catalogMatchTitle: null,
-    catalogMatchArtist: null,
-    catalogMatchURL: null,
-    catalogMatchScore: null,
-    libraryMatchTitle: null,
-    libraryMatchArtist: null,
-    libraryMatchScore: null,
-    libraryPersistentID: null,
-    autoAnalysisState: null,
-    autoAnalysisAttemptedAt: null,
-    autoAnalysisError: null,
-    analysisSource: null,
-    onlineAnalysisAttemptedAt: null,
-    djMetadataSource: null,
-    djMetadataURL: null,
-    djMetadataTitle: null,
-    djMetadataArtist: null,
-    djMetadataMatchScore: null,
+    createdAt: new Date().toISOString(), status: "new",
+    voteCount: 1, duplicateCount: 1, voterHashes: [],
+    supporters: [{
+      guestName: String(req.body.guestName || "").trim().slice(0, 80) || null,
+      message: String(req.body.message || "").trim().slice(0, 300) || null,
+      createdAt: new Date().toISOString()
+    }],
+    bpm: null, musicalKey: null, bpmConfidence: null, keyConfidence: null,
+    energyLevel: null, vocalProbability: null, trackHealthScore: null, loudnessDB: null,
+    firstDropSeconds: null, suggestedMixOutSeconds: null,
+    waveformSamples: null, analysisUpdatedAt: null,
+    catalogMatchTitle: null, catalogMatchArtist: null, catalogMatchURL: null, catalogMatchScore: null,
+    libraryMatchTitle: null, libraryMatchArtist: null, libraryMatchScore: null, libraryPersistentID: null,
+    autoAnalysisState: null, autoAnalysisAttemptedAt: null, autoAnalysisError: null,
+    analysisSource: null, onlineAnalysisAttemptedAt: null,
+    djMetadataSource: null, djMetadataURL: null, djMetadataTitle: null,
+    djMetadataArtist: null, djMetadataMatchScore: null,
     requestCatalogID: String(req.body.catalogID || "").trim().slice(0, 80) || null,
     requestArtworkURL: cleanURL(req.body.catalogArtworkURL),
     requestStoreURL: cleanURL(req.body.catalogStoreURL),
     requestPreviewURL: cleanURL(req.body.catalogPreviewURL),
-    requestAlbum: String(req.body.catalogAlbum || "").trim().slice(0, 180) || null
+    requestAlbum: String(req.body.catalogAlbum || "").trim().slice(0, 180) || null,
+    requestGenre: String(req.body.catalogGenre || "").trim().slice(0, 100) || null,
+    estimatedMinutes: null,
+    publicStatusMessage: "In der DJ Queue"
   };
 
-  const rows = readStore();
-  rows.push(row);
-  writeStore(rows);
+  rows.push(row); writeStore(rows);
+  res.status(201).json(sanitizeRowForClient(row));
+});
 
-  res.status(201).json(row);
+app.post("/api/requests/:requestID/vote", (req, res) => {
+  const token = String(req.body.voterToken || "").trim();
+  if (token.length < 8 || token.length > 160) return res.status(400).json({ error: "voterToken required" });
+
+  const rows = readStore();
+  const index = rows.findIndex(row => row.id === req.params.requestID);
+  if (index < 0) return res.status(404).json({ error: "not found" });
+
+  const row = rows[index];
+  const hash = hashVoterToken(token);
+  const voters = Array.isArray(row.voterHashes) ? row.voterHashes : [];
+  if (voters.includes(hash)) {
+    return res.json({ ok: true, alreadyVoted: true, voteCount: Math.max(1, Number(row.voteCount || 1)) });
+  }
+
+  voters.push(hash);
+  row.voterHashes = voters.slice(-5000);
+  row.voteCount = Math.max(1, Number(row.voteCount || 1)) + 1;
+  row.voteUpdatedAt = new Date().toISOString();
+  rows[index] = row;
+  writeStore(rows);
+  res.json({ ok: true, alreadyVoted: false, voteCount: row.voteCount });
 });
 
 app.patch("/api/requests/:requestID", (req, res) => {
@@ -626,6 +812,21 @@ app.patch("/api/requests/:requestID", (req, res) => {
   if (Object.prototype.hasOwnProperty.call(req.body, "energyLevel")) {
     next.energyLevel = optionalFiniteNumber(req.body.energyLevel);
   }
+  if (Object.prototype.hasOwnProperty.call(req.body, "vocalProbability")) {
+    next.vocalProbability = optionalFiniteNumber(req.body.vocalProbability);
+  }
+  if (Object.prototype.hasOwnProperty.call(req.body, "trackHealthScore")) {
+    next.trackHealthScore = optionalFiniteNumber(req.body.trackHealthScore);
+  }
+  if (Object.prototype.hasOwnProperty.call(req.body, "loudnessDB")) {
+    next.loudnessDB = optionalFiniteNumber(req.body.loudnessDB);
+  }
+  if (Object.prototype.hasOwnProperty.call(req.body, "firstDropSeconds")) {
+    next.firstDropSeconds = optionalFiniteNumber(req.body.firstDropSeconds);
+  }
+  if (Object.prototype.hasOwnProperty.call(req.body, "suggestedMixOutSeconds")) {
+    next.suggestedMixOutSeconds = optionalFiniteNumber(req.body.suggestedMixOutSeconds);
+  }
   if (Object.prototype.hasOwnProperty.call(req.body, "waveformSamples")) {
     next.waveformSamples = optionalWaveform(req.body.waveformSamples);
   }
@@ -637,14 +838,19 @@ app.patch("/api/requests/:requestID", (req, res) => {
     "catalogMatchTitle", "catalogMatchArtist", "catalogMatchURL",
     "libraryMatchTitle", "libraryMatchArtist", "libraryPersistentID",
     "autoAnalysisError", "analysisSource", "requestCatalogID", "requestArtworkURL",
-    "requestStoreURL", "requestPreviewURL", "requestAlbum", "djMetadataSource",
-    "djMetadataURL", "djMetadataTitle", "djMetadataArtist"
+    "requestStoreURL", "requestPreviewURL", "requestAlbum", "requestGenre",
+    "publicStatusMessage", "djMetadataSource", "djMetadataURL", "djMetadataTitle", "djMetadataArtist"
   ];
 
   for (const key of optionalStrings) {
     if (Object.prototype.hasOwnProperty.call(req.body, key)) {
       next[key] = req.body[key] == null ? null : String(req.body[key]).slice(0, 500);
     }
+  }
+
+  if (Object.prototype.hasOwnProperty.call(req.body, "estimatedMinutes")) {
+    const value = optionalFiniteNumber(req.body.estimatedMinutes);
+    next.estimatedMinutes = value == null ? null : Math.max(0, Math.min(360, Math.round(value)));
   }
 
   for (const key of ["catalogMatchScore", "libraryMatchScore", "djMetadataMatchScore"]) {
@@ -675,7 +881,155 @@ app.patch("/api/requests/:requestID", (req, res) => {
 
   rows[index] = next;
   writeStore(rows);
-  res.json(next);
+  res.json(sanitizeRowForClient(next));
+});
+
+
+// PRO SUITE: public event DNA / guest genre voting.
+app.get("/api/events/:eventID/guest-state", (req, res) => {
+  const state = getEventState(req.params.eventID);
+  const genreVotes = Object.entries(state.genreVotes || {})
+    .map(([genre, votes]) => ({ genre, votes: Math.max(0, Number(votes || 0)) }))
+    .sort((a, b) => b.votes - a.votes);
+
+  const now = Date.now();
+  const upcoming = cleanTimeline(state.timeline)
+    .filter(item => !item.isDone && Number.isFinite(Date.parse(item.time)) && Date.parse(item.time) >= now - 15 * 60 * 1000)
+    .sort((a, b) => Date.parse(a.time) - Date.parse(b.time))
+    .slice(0, 3);
+
+  res.json({
+    eventName: state.eventName || null,
+    preferredGenres: arrayOfStrings(state.preferredGenres, 20, 80),
+    genreVotes,
+    upcoming
+  });
+});
+
+app.post("/api/events/:eventID/genre-vote", (req, res) => {
+  const genre = String(req.body.genre || "").trim().slice(0, 80);
+  const token = String(req.body.voterToken || "").trim();
+  if (!genre || token.length < 8 || token.length > 160) {
+    return res.status(400).json({ error: "genre and voterToken are required" });
+  }
+
+  const state = getEventState(req.params.eventID);
+  const hash = hashVoterToken(token);
+  const voterMap = state.genreVoterHashes && typeof state.genreVoterHashes === "object"
+    ? state.genreVoterHashes : {};
+  const genreVotes = state.genreVotes && typeof state.genreVotes === "object"
+    ? state.genreVotes : {};
+
+  const previous = voterMap[hash];
+  if (previous === genre) {
+    return res.json({ ok: true, alreadyVoted: true, genre, votes: Math.max(0, Number(genreVotes[genre] || 0)) });
+  }
+  if (previous && genreVotes[previous]) {
+    genreVotes[previous] = Math.max(0, Number(genreVotes[previous]) - 1);
+  }
+  genreVotes[genre] = Math.max(0, Number(genreVotes[genre] || 0)) + 1;
+  voterMap[hash] = genre;
+
+  saveEventState(req.params.eventID, {
+    ...state,
+    genreVotes,
+    genreVoterHashes: voterMap
+  });
+  res.json({ ok: true, alreadyVoted: false, genre, votes: genreVotes[genre] });
+});
+
+// Create/recover a capability URL that an event client can use to configure
+// must-play, no-go and timeline information. The raw token is never stored.
+app.post("/api/events/:eventID/client-portal", (req, res) => {
+  const state = getEventState(req.params.eventID);
+  const token = crypto.randomBytes(18).toString("base64url");
+  const next = saveEventState(req.params.eventID, {
+    ...state,
+    eventName: String(req.body.eventName || state.eventName || "").trim().slice(0, 120) || null,
+    clientPortalTokenHash: hashVoterToken(token)
+  });
+  res.status(201).json({
+    ok: true,
+    token,
+    eventID: req.params.eventID,
+    eventName: next.eventName
+  });
+});
+
+app.get("/api/events/:eventID/client-plan", (req, res) => {
+  const state = getEventState(req.params.eventID);
+  if (!portalTokenMatches(state, req.query.token)) return res.status(403).json({ error: "invalid portal token" });
+  res.json(cleanPortalState(state));
+});
+
+app.put("/api/events/:eventID/client-plan", (req, res) => {
+  const state = getEventState(req.params.eventID);
+  if (!portalTokenMatches(state, req.query.token)) return res.status(403).json({ error: "invalid portal token" });
+
+  const next = saveEventState(req.params.eventID, {
+    ...state,
+    eventName: String(req.body.eventName || state.eventName || "").trim().slice(0, 120) || null,
+    mustPlay: arrayOfStrings(req.body.mustPlay),
+    doNotPlay: arrayOfStrings(req.body.doNotPlay),
+    preferredGenres: arrayOfStrings(req.body.preferredGenres, 30, 80),
+    timeline: cleanTimeline(req.body.timeline)
+  });
+  res.json(cleanPortalState(next));
+});
+
+// Shared played-track log for Multi-DJ / B2B handovers.
+app.get("/api/events/:eventID/played", (req, res) => {
+  const state = getEventState(req.params.eventID);
+  res.json(Array.isArray(state.playedTracks) ? state.playedTracks.slice(0, 250) : []);
+});
+
+app.post("/api/events/:eventID/played", (req, res) => {
+  const state = getEventState(req.params.eventID);
+  const row = {
+    id: String(req.body?.id || crypto.randomUUID()).slice(0, 80),
+    title: String(req.body?.title || "").trim().slice(0, 160),
+    artist: String(req.body?.artist || "").trim().slice(0, 160),
+    startedAt: String(req.body?.startedAt || new Date().toISOString()).slice(0, 64),
+    lastSeenAt: String(req.body?.lastSeenAt || new Date().toISOString()).slice(0, 64),
+    bpm: optionalFiniteNumber(req.body?.bpm),
+    musicalKey: req.body?.musicalKey ?? null,
+    energyLevel: optionalFiniteNumber(req.body?.energyLevel),
+    recognitionConfidence: optionalFiniteNumber(req.body?.recognitionConfidence)
+  };
+  if (!row.title) return res.status(400).json({ error: "title_required" });
+
+  const list = Array.isArray(state.playedTracks) ? state.playedTracks.slice() : [];
+  const key = normalizeRequestKey(row.artist, row.title);
+  const existing = list.findIndex(item => normalizeRequestKey(item.artist, item.title) === key &&
+    Math.abs(Date.parse(row.lastSeenAt) - Date.parse(item.lastSeenAt || item.startedAt || 0)) < 120000);
+  if (existing >= 0) list[existing] = { ...list[existing], ...row, id: list[existing].id || row.id };
+  else list.unshift(row);
+
+  const next = saveEventState(req.params.eventID, { ...state, playedTracks: list.slice(0, 250) });
+  res.json((next.playedTracks || [])[0] || row);
+});
+
+// Multi-DJ handover state. Event UUID is already a high-entropy capability ID
+// and this endpoint intentionally contains no private guest details.
+app.get("/api/events/:eventID/handover", (req, res) => {
+  const state = getEventState(req.params.eventID);
+  res.json(state.handover || null);
+});
+
+app.put("/api/events/:eventID/handover", (req, res) => {
+  const state = getEventState(req.params.eventID);
+  const handover = {
+    djName: String(req.body.djName || "DJ").trim().slice(0, 80),
+    currentTitle: String(req.body.currentTitle || "").trim().slice(0, 160) || null,
+    currentArtist: String(req.body.currentArtist || "").trim().slice(0, 160) || null,
+    bpm: optionalFiniteNumber(req.body.bpm),
+    musicalKey: String(req.body.musicalKey || "").trim().slice(0, 40) || null,
+    energy: optionalFiniteNumber(req.body.energy),
+    note: String(req.body.note || "").trim().slice(0, 500),
+    updatedAt: new Date().toISOString()
+  };
+  saveEventState(req.params.eventID, { ...state, handover });
+  res.json(handover);
 });
 
 app.listen(port, () => {
