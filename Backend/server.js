@@ -13,12 +13,17 @@ const __dirname = path.dirname(__filename);
 const webDir = path.resolve(__dirname, "../GuestWeb");
 const storePath = path.resolve(__dirname, "requests.json");
 const eventStatePath = path.resolve(__dirname, "events.json");
+const feedbackStatePath = String(process.env.FEEDBACK_STATE_PATH || path.resolve(__dirname, "feedback-state.json"));
+const newsletterStatePath = String(process.env.NEWSLETTER_STATE_PATH || path.resolve(__dirname, "newsletter-subscribers.json"));
 const requestRateBuckets = new Map();
 const feedbackRateBuckets = new Map();
+const newsletterRateBuckets = new Map();
 const RATE_WINDOW_MS = 60 * 1000;
 const MAX_REQUESTS_PER_MINUTE = 12;
 const FEEDBACK_RATE_WINDOW_MS = 15 * 60 * 1000;
 const MAX_FEEDBACK_PER_WINDOW = 5;
+const NEWSLETTER_RATE_WINDOW_MS = 15 * 60 * 1000;
+const MAX_NEWSLETTER_SIGNUPS_PER_WINDOW = 5;
 
 const catalogSearchCache = new Map();
 const catalogGenreCache = new Map();
@@ -29,6 +34,120 @@ const DJ_METADATA_CACHE_TTL_MS = 12 * 60 * 60 * 1000;
 app.use(cors());
 app.use(express.json({ limit: "256kb" }));
 app.use(express.static(webDir));
+
+
+function ensureParentDir(filePath) {
+  try {
+    fs.mkdirSync(path.dirname(filePath), { recursive: true });
+  } catch {}
+}
+
+function readJSONFile(filePath, fallback) {
+  try {
+    if (!fs.existsSync(filePath)) return fallback;
+    const value = JSON.parse(fs.readFileSync(filePath, "utf8"));
+    return value ?? fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function writeJSONFile(filePath, value) {
+  ensureParentDir(filePath);
+  fs.writeFileSync(filePath, JSON.stringify(value, null, 2));
+}
+
+function nextFeedbackReference() {
+  const state = readJSONFile(feedbackStatePath, { next: 1 });
+  const current = Math.max(1, Number(state?.next) || 1);
+  writeJSONFile(feedbackStatePath, { next: current + 1, updatedAt: new Date().toISOString() });
+  return `DJT-FB-${String(current).padStart(6, "0")}`;
+}
+
+function publicBaseURL() {
+  return String(process.env.PUBLIC_BASE_URL || "https://dj-toolkit.com").trim().replace(/\/+$/, "");
+}
+
+function newsletterRateAllowed(req) {
+  const address = req.headers["x-forwarded-for"]?.toString().split(",")[0]?.trim()
+    || req.socket?.remoteAddress || "unknown";
+  const now = Date.now();
+  const current = (newsletterRateBuckets.get(address) || [])
+    .filter(ts => now - ts < NEWSLETTER_RATE_WINDOW_MS);
+
+  if (current.length >= MAX_NEWSLETTER_SIGNUPS_PER_WINDOW) {
+    newsletterRateBuckets.set(address, current);
+    return false;
+  }
+
+  current.push(now);
+  newsletterRateBuckets.set(address, current);
+  return true;
+}
+
+function newsletterStore() {
+  const value = readJSONFile(newsletterStatePath, { subscribers: [] });
+  return {
+    subscribers: Array.isArray(value?.subscribers) ? value.subscribers : []
+  };
+}
+
+function saveNewsletterStore(value) {
+  writeJSONFile(newsletterStatePath, {
+    subscribers: Array.isArray(value?.subscribers) ? value.subscribers : [],
+    updatedAt: new Date().toISOString()
+  });
+}
+
+function tokenHash(value) {
+  return crypto.createHash("sha256").update(String(value || "")).digest("hex");
+}
+
+function newsletterInterests(value) {
+  const allowed = new Set(["release", "beta", "updates"]);
+  const input = Array.isArray(value) ? value : [];
+  const result = [...new Set(input.map(item => String(item || "").trim()).filter(item => allowed.has(item)))];
+  return result.length ? result : ["release", "beta", "updates"];
+}
+
+function newsletterInterestLabel(value) {
+  const labels = {
+    release: "App Release",
+    beta: "Beta & Testphase",
+    updates: "Wichtige Updates"
+  };
+  return newsletterInterests(value).map(item => labels[item]).join(" · ");
+}
+
+function renderSimplePage({ eyebrow, title, text, actionLabel = "Zur Startseite", actionURL = "/" }) {
+  const safeEyebrow = escapeHTML(eyebrow);
+  const safeTitle = escapeHTML(title);
+  const safeText = escapeHTML(text);
+  const safeAction = escapeHTML(actionLabel);
+  const safeURL = escapeHTML(actionURL);
+
+  return `<!doctype html>
+  <html lang="de">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="theme-color" content="#05070d">
+    <title>${safeTitle} · DJ Toolkit</title>
+  </head>
+  <body style="margin:0;background:#05070d;color:#f7f9ff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+    <div style="min-height:100vh;display:grid;place-items:center;padding:24px;background:
+      radial-gradient(circle at 15% 5%,rgba(33,215,255,.13),transparent 28rem),
+      radial-gradient(circle at 90% 10%,rgba(221,77,255,.12),transparent 30rem);">
+      <div style="width:min(620px,100%);background:#0b111d;border:1px solid #243049;border-radius:26px;padding:34px;box-sizing:border-box;">
+        <div style="font-size:10px;letter-spacing:.16em;color:#69dfff;font-weight:900">${safeEyebrow}</div>
+        <h1 style="font-size:34px;line-height:1.1;margin:10px 0 14px">${safeTitle}</h1>
+        <p style="font-size:15px;line-height:1.7;color:#aebbd0;margin:0 0 24px">${safeText}</p>
+        <a href="${safeURL}" style="display:inline-block;padding:13px 18px;border-radius:13px;background:linear-gradient(105deg,#168fff,#785bff 68%,#b952ff);color:#fff;text-decoration:none;font-weight:900;font-size:13px">${safeAction} →</a>
+      </div>
+    </div>
+  </body>
+  </html>`;
+}
 
 function readStore() {
   try {
@@ -833,6 +952,8 @@ app.post("/api/feedback", async (req, res) => {
   const fromName = String(process.env.FEEDBACK_FROM_NAME || "DJ Toolkit").trim().slice(0, 80);
   const from = `${fromName} <${fromAddress}>`;
   const submittedAt = new Date().toISOString();
+  const feedbackReference = nextFeedbackReference();
+  const safeFeedbackReference = escapeHTML(feedbackReference);
 
   const ratingText = rating ? `${rating}/5` : "nicht angegeben";
   const safeName = escapeHTML(name || "Nicht angegeben");
@@ -845,6 +966,7 @@ app.post("/api/feedback", async (req, res) => {
   const internalText = [
     "Neues Feedback über dj-toolkit.com",
     "",
+    `Feedback-Nr.: ${feedbackReference}`,
     `Name: ${name || "Nicht angegeben"}`,
     `E-Mail: ${email}`,
     `Mobil: ${phone || "Nicht angegeben"}`,
@@ -860,8 +982,10 @@ app.post("/api/feedback", async (req, res) => {
     <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#070b13;color:#f7f9ff;padding:28px">
       <div style="max-width:680px;margin:auto;background:#0d1422;border:1px solid #26324a;border-radius:20px;padding:26px">
         <div style="font-size:12px;letter-spacing:.14em;color:#5fddff;font-weight:800">DJ TOOLKIT · WEBSITE FEEDBACK</div>
-        <h2 style="margin:8px 0 22px;font-size:26px">Neues Feedback</h2>
+        <h2 style="margin:8px 0 8px;font-size:26px">Neues Feedback</h2>
+        <div style="margin-bottom:18px;display:inline-block;padding:7px 10px;border-radius:999px;background:#0b2630;border:1px solid #1f5060;color:#8beaff;font-size:11px;font-weight:900;letter-spacing:.08em">${safeFeedbackReference}</div>
         <table style="width:100%;border-collapse:collapse;color:#dbe5f7;font-size:14px">
+          <tr><td style="padding:7px 0;color:#8492aa">Feedback-Nr.</td><td>${safeFeedbackReference}</td></tr>
           <tr><td style="padding:7px 0;color:#8492aa">Name</td><td>${safeName}</td></tr>
           <tr><td style="padding:7px 0;color:#8492aa">E-Mail</td><td>${safeEmail}</td></tr>
           <tr><td style="padding:7px 0;color:#8492aa">Mobil</td><td>${safePhone}</td></tr>
@@ -883,6 +1007,7 @@ app.post("/api/feedback", async (req, res) => {
     "vielen Dank, dass du dir die Zeit genommen hast, uns dein Feedback zu DJ Toolkit zu schicken.",
     "Deine Nachricht ist sicher bei unserem Team angekommen.",
     "",
+    `Bezug / Feedback-Nr.: ${feedbackReference}`,
     `Kategorie: ${category}`,
     rating ? `Bewertung: ${rating}/5` : null,
     "",
@@ -975,6 +1100,10 @@ app.post("/api/feedback", async (req, res) => {
                       <div style="font-size:10px;line-height:1.4;color:#6edfff;font-weight:900;letter-spacing:.13em;margin-bottom:13px;">DEIN FEEDBACK</div>
 
                       <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                        <tr>
+                          <td style="font-size:12px;color:#74839c;padding:0 12px 8px 0;">Feedback-Nr.</td>
+                          <td align="right" style="font-size:12px;font-weight:900;color:#7fe5ff;padding:0 0 8px;">${safeFeedbackReference}</td>
+                        </tr>
                         <tr>
                           <td style="font-size:12px;color:#74839c;padding:0 12px 8px 0;">Kategorie</td>
                           <td align="right" style="font-size:12px;font-weight:800;color:#eef3ff;padding:0 0 8px;">${safeCategory}</td>
@@ -1072,7 +1201,7 @@ app.post("/api/feedback", async (req, res) => {
         from,
         to: [feedbackTo],
         reply_to: email,
-        subject: `DJ Toolkit Feedback · ${category}${rating ? ` · ${rating}/5` : ""}`,
+        subject: `DJ Toolkit Feedback · ${feedbackReference} · ${category}${rating ? ` · ${rating}/5` : ""}`,
         text: internalText,
         html: internalHTML
       }),
@@ -1080,7 +1209,7 @@ app.post("/api/feedback", async (req, res) => {
         from,
         to: [email],
         reply_to: feedbackTo,
-        subject: "Danke, dass du DJ Toolkit besser machst",
+        subject: `Danke, dass du DJ Toolkit besser machst · ${feedbackReference}`,
         text: thanksText,
         html: thanksHTML
       })
@@ -1101,7 +1230,8 @@ app.post("/api/feedback", async (req, res) => {
     return res.status(201).json({
       ok: true,
       deliveredTo: feedbackTo,
-      confirmationSent: confirmationDelivered
+      confirmationSent: confirmationDelivered,
+      feedbackReference
     });
   } catch (error) {
     console.error("feedback email failed", error?.message || error);
@@ -1109,11 +1239,342 @@ app.post("/api/feedback", async (req, res) => {
   }
 });
 
+
+app.post("/api/newsletter/subscribe", async (req, res) => {
+  const website = String(req.body?.website || "").trim();
+  if (website) return res.status(201).json({ ok: true });
+
+  if (!newsletterRateAllowed(req)) {
+    return res.status(429).json({ error: "Zu viele Anmeldeversuche in kurzer Zeit. Bitte später erneut versuchen." });
+  }
+
+  const email = String(req.body?.email || "").trim().toLowerCase();
+  const name = String(req.body?.name || "").trim().slice(0, 100) || null;
+  const consent = req.body?.consent === true;
+  const interests = newsletterInterests(req.body?.interests);
+
+  if (!validEmail(email)) {
+    return res.status(400).json({ error: "Bitte gib eine gültige E-Mail-Adresse ein." });
+  }
+  if (!consent) {
+    return res.status(400).json({ error: "Bitte bestätige, dass du den DJ-Toolkit Newsletter erhalten möchtest." });
+  }
+  if (!feedbackAPIKey()) {
+    return res.status(503).json({ error: "Der Newsletter-Mailversand ist noch nicht konfiguriert." });
+  }
+
+  const store = newsletterStore();
+  const existing = store.subscribers.find(item => String(item?.email || "").toLowerCase() === email);
+
+  if (existing?.status === "confirmed") {
+    existing.name = name || existing.name || null;
+    existing.interests = interests;
+    existing.updatedAt = new Date().toISOString();
+    saveNewsletterStore(store);
+    return res.status(200).json({ ok: true, alreadySubscribed: true });
+  }
+
+  const confirmToken = crypto.randomBytes(32).toString("hex");
+  const unsubscribeToken = existing?.unsubscribeToken || crypto.randomBytes(32).toString("hex");
+  const now = new Date().toISOString();
+
+  const subscriber = {
+    id: existing?.id || `DJT-NL-${crypto.randomBytes(5).toString("hex").toUpperCase()}`,
+    email,
+    name,
+    interests,
+    status: "pending",
+    confirmTokenHash: tokenHash(confirmToken),
+    unsubscribeToken,
+    createdAt: existing?.createdAt || now,
+    updatedAt: now,
+    confirmedAt: null,
+    unsubscribedAt: null,
+    consentAt: now,
+    source: "dj-toolkit.com"
+  };
+
+  if (existing) {
+    Object.assign(existing, subscriber);
+  } else {
+    store.subscribers.push(subscriber);
+  }
+  saveNewsletterStore(store);
+
+  const baseURL = publicBaseURL();
+  const confirmURL = `${baseURL}/api/newsletter/confirm?token=${encodeURIComponent(confirmToken)}`;
+  const fromAddress = String(process.env.FEEDBACK_FROM || "info@dj-toolkit.com").trim();
+  const fromName = String(process.env.FEEDBACK_FROM_NAME || "DJ Toolkit").trim().slice(0, 80);
+  const from = `${fromName} <${fromAddress}>`;
+  const safeName = escapeHTML(name || "");
+  const interestText = newsletterInterestLabel(interests);
+
+  const text = [
+    name ? `Hallo ${name},` : "Hallo,",
+    "",
+    "du möchtest Updates von DJ Toolkit erhalten.",
+    `Themen: ${interestText}`,
+    "",
+    "Bitte bestätige deine Anmeldung über diesen Link:",
+    confirmURL,
+    "",
+    "Erst nach der Bestätigung erhältst du Newsletter von uns.",
+    "",
+    "DJ Toolkit · Mehr Musik. Bessere Nächte."
+  ].join("\n");
+
+  const html = `<!doctype html>
+  <html lang="de"><body style="margin:0;background:#05070d;color:#f7f9ff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#05070d"><tr><td align="center" style="padding:36px 16px">
+      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:640px;background:#0b111d;border:1px solid #243049;border-radius:24px;overflow:hidden">
+        <tr><td><div style="height:5px;background:linear-gradient(90deg,#16cfff,#5b7cff,#9b5dff,#e14dff)">&nbsp;</div></td></tr>
+        <tr><td style="padding:30px 32px">
+          <div style="font-size:10px;letter-spacing:.15em;color:#6edfff;font-weight:900">DJ TOOLKIT · NEWSLETTER</div>
+          <h1 style="font-size:31px;line-height:1.1;margin:9px 0 15px">Bestätige deine Anmeldung.</h1>
+          <p style="color:#aebbd0;line-height:1.7">${safeName ? `Hallo ${safeName},` : "Hallo,"}</p>
+          <p style="color:#aebbd0;line-height:1.7">du möchtest Neuigkeiten zu <strong style="color:#fff">${escapeHTML(interestText)}</strong> erhalten. Bitte bestätige deine Anmeldung mit einem Klick.</p>
+          <div style="padding:18px 0 8px"><a href="${escapeHTML(confirmURL)}" style="display:inline-block;padding:14px 20px;border-radius:14px;background:linear-gradient(105deg,#168fff,#785bff 68%,#b952ff);color:#fff;text-decoration:none;font-weight:900">Newsletter bestätigen →</a></div>
+          <p style="margin-top:22px;color:#64728a;font-size:10px;line-height:1.6">Ohne Bestätigung wird deine Adresse nicht für Newsletter aktiviert.</p>
+        </td></tr>
+      </table>
+    </td></tr></table>
+  </body></html>`;
+
+  try {
+    await sendFeedbackEmail({
+      from,
+      to: [email],
+      reply_to: String(process.env.FEEDBACK_TO || "info@dj-toolkit.com").trim(),
+      subject: "Newsletter-Anmeldung bestätigen · DJ Toolkit",
+      text,
+      html
+    });
+    return res.status(201).json({ ok: true, confirmationRequired: true });
+  } catch (error) {
+    console.error("newsletter confirmation send failed", error?.message || error);
+    return res.status(502).json({ error: "Die Bestätigungs-E-Mail konnte gerade nicht gesendet werden." });
+  }
+});
+
+app.get("/api/newsletter/confirm", async (req, res) => {
+  const token = String(req.query?.token || "").trim();
+  if (!token) {
+    return res.status(400).send(renderSimplePage({
+      eyebrow: "DJ TOOLKIT · NEWSLETTER",
+      title: "Bestätigungslink ungültig",
+      text: "Der Bestätigungslink ist unvollständig."
+    }));
+  }
+
+  const hash = tokenHash(token);
+  const store = newsletterStore();
+  const subscriber = store.subscribers.find(item => item?.status === "pending" && item?.confirmTokenHash === hash);
+
+  if (!subscriber) {
+    return res.status(400).send(renderSimplePage({
+      eyebrow: "DJ TOOLKIT · NEWSLETTER",
+      title: "Link nicht mehr gültig",
+      text: "Die Anmeldung wurde bereits bestätigt oder der Link ist nicht mehr gültig."
+    }));
+  }
+
+  const now = new Date().toISOString();
+  subscriber.status = "confirmed";
+  subscriber.confirmTokenHash = null;
+  subscriber.confirmedAt = now;
+  subscriber.updatedAt = now;
+  saveNewsletterStore(store);
+
+  const baseURL = publicBaseURL();
+  const unsubscribeURL = `${baseURL}/api/newsletter/unsubscribe?token=${encodeURIComponent(subscriber.unsubscribeToken)}`;
+  const fromAddress = String(process.env.FEEDBACK_FROM || "info@dj-toolkit.com").trim();
+  const fromName = String(process.env.FEEDBACK_FROM_NAME || "DJ Toolkit").trim().slice(0, 80);
+  const from = `${fromName} <${fromAddress}>`;
+
+  const welcomeText = [
+    subscriber.name ? `Hallo ${subscriber.name},` : "Hallo,",
+    "",
+    "deine Anmeldung zum DJ-Toolkit Newsletter ist bestätigt.",
+    "Wir informieren dich künftig über App-Releases, Beta- und Testphasen sowie wichtige Produkt-Updates entsprechend deiner Auswahl.",
+    "",
+    "Du kannst dich jederzeit abmelden:",
+    unsubscribeURL,
+    "",
+    "Mehr Musik. Bessere Nächte."
+  ].join("\n");
+
+  const welcomeHTML = `<!doctype html><html lang="de"><body style="margin:0;background:#05070d;color:#f7f9ff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif">
+    <div style="padding:36px 16px"><div style="max-width:640px;margin:auto;background:#0b111d;border:1px solid #243049;border-radius:24px;padding:30px;box-sizing:border-box">
+      <div style="font-size:10px;letter-spacing:.15em;color:#6edfff;font-weight:900">DJ TOOLKIT · NEWSLETTER</div>
+      <h1 style="font-size:31px;margin:9px 0 14px">Du bist dabei.</h1>
+      <p style="color:#aebbd0;line-height:1.7">Deine Anmeldung ist bestätigt. Wir halten dich über Releases, Beta-/Testphasen und wichtige DJ-Toolkit Updates auf dem Laufenden.</p>
+      <p style="margin-top:24px;color:#607089;font-size:10px;line-height:1.6">Du möchtest keine Newsletter mehr? <a href="${escapeHTML(unsubscribeURL)}" style="color:#8edfff">Hier abmelden</a>.</p>
+    </div></div>
+  </body></html>`;
+
+  sendFeedbackEmail({
+    from,
+    to: [subscriber.email],
+    reply_to: String(process.env.FEEDBACK_TO || "info@dj-toolkit.com").trim(),
+    subject: "Du bist beim DJ-Toolkit Newsletter dabei",
+    text: welcomeText,
+    html: welcomeHTML
+  }).catch(error => console.warn("newsletter welcome send failed", error?.message || error));
+
+  return res.status(200).send(renderSimplePage({
+    eyebrow: "DJ TOOLKIT · NEWSLETTER",
+    title: "Anmeldung bestätigt",
+    text: "Du bist jetzt im DJ-Toolkit Newsletter. Wir informieren dich über Releases, Testphasen und wichtige Updates.",
+    actionLabel: "DJ Toolkit öffnen",
+    actionURL: "/"
+  }));
+});
+
+app.get("/api/newsletter/unsubscribe", (req, res) => {
+  const token = String(req.query?.token || "").trim();
+  const store = newsletterStore();
+  const subscriber = store.subscribers.find(item => item?.unsubscribeToken === token);
+
+  if (!subscriber) {
+    return res.status(400).send(renderSimplePage({
+      eyebrow: "DJ TOOLKIT · NEWSLETTER",
+      title: "Abmeldelink ungültig",
+      text: "Wir konnten diese Newsletter-Anmeldung nicht finden."
+    }));
+  }
+
+  const now = new Date().toISOString();
+  subscriber.status = "unsubscribed";
+  subscriber.unsubscribedAt = now;
+  subscriber.updatedAt = now;
+  saveNewsletterStore(store);
+
+  return res.status(200).send(renderSimplePage({
+    eyebrow: "DJ TOOLKIT · NEWSLETTER",
+    title: "Du bist abgemeldet",
+    text: "Du erhältst ab jetzt keine DJ-Toolkit Newsletter mehr. Eine erneute Anmeldung ist jederzeit möglich."
+  }));
+});
+
+app.post("/api/admin/newsletter/send", async (req, res) => {
+  const configuredToken = String(process.env.NEWSLETTER_ADMIN_TOKEN || "").trim();
+  const auth = String(req.headers.authorization || "");
+  const providedToken = auth.startsWith("Bearer ") ? auth.slice(7).trim() : "";
+
+  if (!configuredToken || !providedToken || !crypto.timingSafeEqual(
+    Buffer.from(configuredToken),
+    Buffer.from(providedToken.padEnd(configuredToken.length).slice(0, configuredToken.length))
+  )) {
+    return res.status(401).json({ error: "Nicht autorisiert." });
+  }
+
+  const subject = String(req.body?.subject || "").trim().slice(0, 180);
+  const title = String(req.body?.title || "").trim().slice(0, 180);
+  const intro = String(req.body?.intro || "").trim().slice(0, 1200);
+  const bodyText = String(req.body?.body || "").trim().slice(0, 6000);
+  const ctaLabel = String(req.body?.ctaLabel || "DJ Toolkit öffnen").trim().slice(0, 80);
+  const ctaURL = String(req.body?.ctaURL || publicBaseURL()).trim().slice(0, 500);
+  const audience = String(req.body?.audience || "all").trim();
+
+  if (!subject || !title || !bodyText) {
+    return res.status(400).json({ error: "subject, title und body sind erforderlich." });
+  }
+
+  const allowedAudiences = new Set(["all", "release", "beta", "updates"]);
+  if (!allowedAudiences.has(audience)) {
+    return res.status(400).json({ error: "Ungültige Zielgruppe." });
+  }
+
+  const store = newsletterStore();
+  const recipients = store.subscribers.filter(item =>
+    item?.status === "confirmed"
+    && validEmail(item?.email)
+    && (audience === "all" || newsletterInterests(item?.interests).includes(audience))
+  );
+
+  const fromAddress = String(process.env.FEEDBACK_FROM || "info@dj-toolkit.com").trim();
+  const fromName = String(process.env.FEEDBACK_FROM_NAME || "DJ Toolkit").trim().slice(0, 80);
+  const from = `${fromName} <${fromAddress}>`;
+  const baseURL = publicBaseURL();
+
+  const sendOne = async subscriber => {
+    const unsubscribeURL = `${baseURL}/api/newsletter/unsubscribe?token=${encodeURIComponent(subscriber.unsubscribeToken)}`;
+    const safeTitle = escapeHTML(title);
+    const safeIntro = escapeHTML(intro).replace(/\n/g, "<br>");
+    const safeBody = escapeHTML(bodyText).replace(/\n/g, "<br>");
+    const safeCTA = escapeHTML(ctaLabel);
+    const safeCTAURL = escapeHTML(ctaURL);
+
+    const text = [
+      subscriber.name ? `Hallo ${subscriber.name},` : "Hallo,",
+      "",
+      title,
+      intro,
+      "",
+      bodyText,
+      "",
+      `${ctaLabel}: ${ctaURL}`,
+      "",
+      "Newsletter abbestellen:",
+      unsubscribeURL
+    ].filter(Boolean).join("\n");
+
+    const html = `<!doctype html><html lang="de"><body style="margin:0;background:#05070d;color:#f7f9ff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif">
+      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#05070d"><tr><td align="center" style="padding:36px 16px">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:660px;background:#0b111d;border:1px solid #243049;border-radius:24px;overflow:hidden">
+          <tr><td><div style="height:5px;background:linear-gradient(90deg,#16cfff,#5b7cff,#9b5dff,#e14dff)">&nbsp;</div></td></tr>
+          <tr><td style="padding:32px">
+            <div style="font-size:10px;letter-spacing:.15em;color:#6edfff;font-weight:900">DJ TOOLKIT · UPDATE</div>
+            <h1 style="font-size:32px;line-height:1.1;margin:9px 0 15px">${safeTitle}</h1>
+            ${safeIntro ? `<p style="font-size:16px;color:#d0d9e8;line-height:1.7">${safeIntro}</p>` : ""}
+            <div style="font-size:14px;color:#aebbd0;line-height:1.75">${safeBody}</div>
+            <div style="padding:24px 0 10px"><a href="${safeCTAURL}" style="display:inline-block;padding:14px 20px;border-radius:14px;background:linear-gradient(105deg,#168fff,#785bff 68%,#b952ff);color:#fff;text-decoration:none;font-weight:900">${safeCTA} →</a></div>
+            <div style="margin-top:24px;padding-top:18px;border-top:1px solid #202a3d;color:#607089;font-size:9px;line-height:1.6">
+              Du erhältst diese Nachricht, weil du den DJ-Toolkit Newsletter bestätigt hast.
+              <a href="${escapeHTML(unsubscribeURL)}" style="color:#8edfff">Newsletter abbestellen</a>
+            </div>
+          </td></tr>
+        </table>
+      </td></tr></table>
+    </body></html>`;
+
+    return sendFeedbackEmail({
+      from,
+      to: [subscriber.email],
+      reply_to: String(process.env.FEEDBACK_TO || "info@dj-toolkit.com").trim(),
+      subject,
+      text,
+      html
+    });
+  };
+
+  let sent = 0;
+  let failed = 0;
+  const batchSize = 5;
+
+  for (let i = 0; i < recipients.length; i += batchSize) {
+    const batch = recipients.slice(i, i + batchSize);
+    const results = await Promise.allSettled(batch.map(sendOne));
+    for (const result of results) {
+      if (result.status === "fulfilled") sent += 1;
+      else failed += 1;
+    }
+  }
+
+  return res.json({
+    ok: failed === 0,
+    audience,
+    recipients: recipients.length,
+    sent,
+    failed
+  });
+});
+
 app.get("/health", (_, res) => {
   res.set("Cache-Control", "no-store");
   res.json({
     ok: true,
-    version: "10.5.5",
+    version: "10.6.0",
     onlineAnalysis: true,
     catalogPreviewAudio: true,
     djMetadata: true,
@@ -1126,6 +1587,10 @@ app.get("/health", (_, res) => {
     catalogGenreEnrichment: true,
     websiteFeedback: true,
     feedbackConfirmationEmail: true,
+    feedbackReferenceNumbers: true,
+    newsletterDoubleOptIn: true,
+    newsletterCampaignAPI: true,
+    newsletterUnsubscribe: true,
     resendHTTPSAPI: true,
     clientPortal: true,
     requestETA: true,
