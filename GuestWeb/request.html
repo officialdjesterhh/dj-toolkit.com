@@ -454,6 +454,41 @@
       font-size:10px; font-weight:760; cursor:pointer; transition:.18s ease;
     }
     .genre-vote:hover { border-color:rgba(90,190,255,.35); transform:translateY(-1px); }
+
+    .event-format {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      margin: 9px 0 0;
+      padding: 7px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(139,92,255,.22);
+      background: rgba(139,92,255,.08);
+      color: #c6b9ff;
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: .02em;
+    }
+
+    .format-notice {
+      display: none;
+      margin: 10px 0 0;
+      padding: 11px 12px;
+      border-radius: 13px;
+      border: 1px solid rgba(255,184,90,.30);
+      background: rgba(255,184,90,.08);
+      color: #ffd9a4;
+      font-size: 11px;
+      line-height: 1.45;
+    }
+
+    .format-notice.visible { display: block; }
+    .format-notice.match {
+      border-color: rgba(78,229,154,.28);
+      background: rgba(78,229,154,.07);
+      color: #8df0ba;
+    }
+
     .genre-vote.active {
       color:#07111f; border-color:transparent;
       background:linear-gradient(90deg,#2aa7ff,#43e4ff,#a65cff);
@@ -647,6 +682,7 @@
 
     <section id="intro">
       <div class="event-chip"><span class="pulse"></span><span id="eventName">Live Event</span></div>
+      <div id="eventFormat" class="event-format">♫ Open Format</div>
       <h1><span class="gradient-text">Dein Song.</span><br>Dein Wunsch.</h1>
       <p class="lead">Schick deinen Musikwunsch direkt an den DJ. Kein Download, kein Account – einfach eintragen und absenden.</p>
       <div class="micro-info">
@@ -682,6 +718,7 @@
         </div>
         <button id="selectedRemove" class="selected-remove" type="button" aria-label="Auswahl entfernen">×</button>
       </div>
+      <div id="formatNotice" class="format-notice"></div>
 
       <div class="manual-divider">oder manuell eingeben</div>
 
@@ -791,6 +828,8 @@
   const selectedRemove = document.getElementById("selectedRemove");
   const genreGrid = document.getElementById("genreGrid");
   const timelineMini = document.getElementById("timelineMini");
+  const eventFormat = document.getElementById("eventFormat");
+  const formatNotice = document.getElementById("formatNotice");
   let catalogAbort = null;
   let catalogTimer = null;
   let selectedCatalog = null;
@@ -807,6 +846,68 @@
   const genreVoteKey = `djtoolkit-genre-${eventID}`;
   let selectedGenre = localStorage.getItem(genreVoteKey) || "";
   const fallbackGenres = ["House","Tech House","EDM","Techno","90s","2000s","Pop","Hip-Hop"];
+  let currentMusicDirection = "openFormat";
+  let currentMusicDirectionLabel = "Open Format";
+  let currentGenreOptions = fallbackGenres.slice();
+
+  function normalizeGenreLabel(value) {
+    return String(value || "")
+      .normalize("NFKD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .replace(/&/g, " and ")
+      .replace(/[^a-z0-9]+/g, " ")
+      .trim();
+  }
+
+  function classifySelectedGenre(catalogGenre) {
+    if (currentMusicDirection === "openFormat") return "matching";
+    const genre = normalizeGenreLabel(catalogGenre);
+    if (!genre) return "unknown";
+    const techHouse = genre.includes("tech house") || genre.includes("techhouse");
+    const techno = genre.includes("techno");
+    const house = genre.includes("house") && !techHouse;
+
+    if (currentMusicDirection === "house") {
+      if (house) return "matching";
+      if (techHouse || techno) return "outside";
+    } else if (currentMusicDirection === "techHouse") {
+      if (techHouse) return "matching";
+      if (house || techno) return "outside";
+    } else if (currentMusicDirection === "techno") {
+      if (techno) return "matching";
+      if (house || techHouse) return "outside";
+    }
+
+    const clearlyOther = ["pop","hip hop","hiphop","rap","rock","metal","country","r b","rnb","schlager","jazz","reggae","latin","classical","folk","indie","alternative","disco","funk","soul","drum and bass","drum bass","dnb","hardstyle","trance"]
+      .some(token => genre.includes(token));
+    return clearlyOther ? "outside" : "unknown";
+  }
+
+  function updateFormatNotice(catalogGenre) {
+    if (!formatNotice) return;
+    const result = classifySelectedGenre(catalogGenre);
+    formatNotice.className = "format-notice";
+
+    if (currentMusicDirection === "openFormat") {
+      formatNotice.textContent = "✓ Open Format: Dieser Abend ist für alle Musikrichtungen offen.";
+      formatNotice.classList.add("visible", "match");
+      return;
+    }
+    if (result === "matching") {
+      formatNotice.textContent = `✓ Passt zum Eventformat ${currentMusicDirectionLabel}.`;
+      formatNotice.classList.add("visible", "match");
+      return;
+    }
+    if (result === "outside") {
+      formatNotice.textContent = `⚠ Dieser Katalogtreffer liegt außerhalb von ${currentMusicDirectionLabel}. Du kannst ihn trotzdem senden – der DJ entscheidet.`;
+      formatNotice.classList.add("visible");
+      return;
+    }
+
+    formatNotice.textContent = `ℹ Eventformat: ${currentMusicDirectionLabel}. Das Kataloggenre dieses Titels ist nicht eindeutig genug für eine sichere Zuordnung.`;
+    formatNotice.classList.add("visible");
+  }
 
   async function loadV10EventPresentation() {
     if (!eventID) return;
@@ -871,11 +972,34 @@
       const response = await fetch(`/api/events/${encodeURIComponent(eventID)}/guest-state`, { cache:"no-store" });
       if (!response.ok) throw new Error("guest state unavailable");
       const state = await response.json();
-      const preferred = Array.isArray(state.preferredGenres) && state.preferredGenres.length
-        ? state.preferredGenres : fallbackGenres;
+      currentMusicDirection = state.musicDirection || "openFormat";
+      currentMusicDirectionLabel = state.musicDirectionLabel || (
+        currentMusicDirection === "techHouse" ? "Tech House" :
+        currentMusicDirection === "techno" ? "Techno" :
+        currentMusicDirection === "house" ? "House" : "Open Format"
+      );
+
+      const serverOptions = Array.isArray(state.genreOptions) ? state.genreOptions.filter(Boolean) : [];
+      const preferred = Array.isArray(state.preferredGenres) ? state.preferredGenres.filter(Boolean) : [];
       const voteGenres = Array.isArray(state.genreVotes) ? state.genreVotes.map(item => item.genre) : [];
-      const allGenres = [...new Set([...preferred, ...voteGenres, ...fallbackGenres])].slice(0, 12);
-      renderGenreVotes(allGenres, state.genreVotes || []);
+
+      currentGenreOptions = serverOptions.length
+        ? serverOptions
+        : (currentMusicDirection === "openFormat"
+            ? [...new Set([...preferred, ...voteGenres, ...fallbackGenres])].slice(0, 12)
+            : [currentMusicDirectionLabel]);
+
+      eventFormat.textContent = currentMusicDirection === "openFormat"
+        ? "♫ Open Format · alle Genres"
+        : `♫ ${currentMusicDirectionLabel} Event`;
+
+      if (selectedGenre && !currentGenreOptions.some(item => item.toLowerCase() === selectedGenre.toLowerCase())) {
+        selectedGenre = "";
+        localStorage.removeItem(genreVoteKey);
+      }
+
+      renderGenreVotes(currentGenreOptions, state.genreVotes || []);
+      if (selectedCatalog) updateFormatNotice(selectedCatalog.genre || "");
 
       const upcoming = Array.isArray(state.upcoming) ? state.upcoming : [];
       timelineMini.replaceChildren();
@@ -898,6 +1022,10 @@
         timelineMini.classList.remove("visible");
       }
     } catch (_) {
+      currentMusicDirection = "openFormat";
+      currentMusicDirectionLabel = "Open Format";
+      currentGenreOptions = fallbackGenres.slice();
+      eventFormat.textContent = "♫ Open Format";
       renderGenreVotes(fallbackGenres, []);
     }
   }
@@ -1017,6 +1145,8 @@
     form.catalogPreviewURL.value = "";
     form.catalogAlbum.value = "";
     form.catalogGenre.value = "";
+    formatNotice.className = "format-notice";
+    formatNotice.textContent = "";
     if (!keepQuery) catalogSearch.value = "";
     searchClear.classList.toggle("visible", catalogSearch.value.length > 0);
   }
@@ -1039,6 +1169,7 @@
     selectedArtwork.src = song.artworkURL || "/djtoolkit-icon.png";
     selectedArtwork.onerror = () => { selectedArtwork.src = "/djtoolkit-icon.png"; };
     selectedSong.classList.add("visible");
+    updateFormatNotice(song.genre || "");
     catalogSearch.value = `${song.title || ""} · ${song.artist || ""}`;
     searchClear.classList.add("visible");
     hideSearchResults();
@@ -1237,10 +1368,12 @@
       document.getElementById("successTitle").textContent = row.title;
       document.getElementById("successArtist").textContent = row.artist;
       const statusLabel = document.getElementById("requestStatus").lastElementChild;
-      if (row.mergedDuplicate) {
+      if (row.formatCompatibility === "outside") {
+        statusLabel.textContent = row.publicStatusMessage || `Außerhalb ${currentMusicDirectionLabel} · DJ entscheidet`;
+      } else if (row.mergedDuplicate) {
         statusLabel.textContent = `Schon gewünscht · jetzt ${row.voteCount || row.duplicateCount || 2} Stimmen`;
       } else {
-        statusLabel.textContent = "Eingegangen";
+        statusLabel.textContent = row.publicStatusMessage || "Eingegangen";
       }
 
       form.reset();
