@@ -264,6 +264,18 @@
       cursor: pointer;
     }
 
+    .popular-item {
+      display: inline-flex; align-items: center; gap: 5px; flex: 0 0 auto;
+      padding: 3px; border-radius: 999px; border: 1px solid rgba(255,255,255,.07);
+      background: rgba(255,255,255,.025);
+    }
+    .popular-item .song-chip { border: 0; background: transparent; padding: 7px 8px; }
+    .vote-chip {
+      border: 0; border-radius: 999px; min-width: 38px; padding: 7px 9px;
+      background: rgba(255,56,174,.12); color: #ff7bc9; font-size: 11px; font-weight: 800; cursor: pointer;
+    }
+    .vote-chip.voted { background: rgba(74,222,128,.12); color: #65e8a0; cursor: default; }
+
     .catalog-search {
       position: relative;
       margin-bottom: 18px;
@@ -423,6 +435,34 @@
       flex: 1;
       background: rgba(255,255,255,.06);
     }
+
+
+    .crowd-direction {
+      margin-top: 18px;
+      padding: 15px;
+      border-radius: 18px;
+      border: 1px solid rgba(255,255,255,.08);
+      background: linear-gradient(135deg, rgba(39,110,255,.08), rgba(160,62,255,.07));
+    }
+    .crowd-direction .title-row { display:flex; align-items:center; justify-content:space-between; gap:10px; }
+    .crowd-direction .title-row strong { font-size:12px; letter-spacing:.02em; }
+    .crowd-direction .title-row span { color:var(--muted); font-size:9px; }
+    .genre-grid { display:flex; flex-wrap:wrap; gap:8px; margin-top:11px; }
+    .genre-vote {
+      appearance:none; border:1px solid rgba(255,255,255,.09); color:#cbd2e6;
+      background:rgba(255,255,255,.045); border-radius:999px; padding:8px 11px;
+      font-size:10px; font-weight:760; cursor:pointer; transition:.18s ease;
+    }
+    .genre-vote:hover { border-color:rgba(90,190,255,.35); transform:translateY(-1px); }
+    .genre-vote.active {
+      color:#07111f; border-color:transparent;
+      background:linear-gradient(90deg,#2aa7ff,#43e4ff,#a65cff);
+      box-shadow:0 8px 28px rgba(43,166,255,.18);
+    }
+    .timeline-mini { display:none; margin-top:12px; gap:7px; flex-direction:column; }
+    .timeline-mini.visible { display:flex; }
+    .timeline-mini-item { display:flex; gap:9px; align-items:center; color:#8c95ac; font-size:10px; }
+    .timeline-mini-item time { color:#65dfff; font-family:ui-monospace,SFMono-Regular,Menlo,monospace; }
 
     .submit {
       width: 100%;
@@ -661,6 +701,15 @@
         <div id="popularChips" class="chips"></div>
       </div>
 
+      <div class="crowd-direction">
+        <div class="title-row">
+          <strong>Welche Richtung fühlst du gerade?</strong>
+          <span>1 Stimme pro Gerät</span>
+        </div>
+        <div id="genreGrid" class="genre-grid"></div>
+        <div id="timelineMini" class="timeline-mini"></div>
+      </div>
+
       <div class="field">
         <label for="guestName">Dein Name <small>Optional</small></label>
         <input id="guestName" name="guestName" maxlength="80" autocomplete="name" placeholder="z. B. Sebastian">
@@ -674,7 +723,9 @@
       <input type="hidden" id="catalogID" name="catalogID">
       <input type="hidden" id="catalogArtworkURL" name="catalogArtworkURL">
       <input type="hidden" id="catalogStoreURL" name="catalogStoreURL">
+      <input type="hidden" id="catalogPreviewURL" name="catalogPreviewURL">
       <input type="hidden" id="catalogAlbum" name="catalogAlbum">
+      <input type="hidden" id="catalogGenre" name="catalogGenre">
 
       <div class="honeypot" aria-hidden="true">
         <label for="website">Website</label>
@@ -733,9 +784,90 @@
   const selectedArtist = document.getElementById("selectedArtist");
   const selectedMeta = document.getElementById("selectedMeta");
   const selectedRemove = document.getElementById("selectedRemove");
+  const genreGrid = document.getElementById("genreGrid");
+  const timelineMini = document.getElementById("timelineMini");
   let catalogAbort = null;
   let catalogTimer = null;
   let selectedCatalog = null;
+
+  const voterTokenKey = "djtoolkit-voter-token-v1";
+  let voterToken = localStorage.getItem(voterTokenKey);
+  if (!voterToken) {
+    voterToken = (crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`);
+    localStorage.setItem(voterTokenKey, voterToken);
+  }
+  const votedKey = `djtoolkit-voted-${eventID}`;
+  const votedRequests = new Set(JSON.parse(localStorage.getItem(votedKey) || "[]"));
+
+  const genreVoteKey = `djtoolkit-genre-${eventID}`;
+  let selectedGenre = localStorage.getItem(genreVoteKey) || "";
+  const fallbackGenres = ["House","Tech House","EDM","Techno","90s","2000s","Pop","Hip-Hop"];
+
+  function renderGenreVotes(genres, voteRows = []) {
+    const votes = new Map((voteRows || []).map(item => [item.genre, Number(item.votes || 0)]));
+    genreGrid.replaceChildren();
+    for (const genre of genres) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "genre-vote";
+      button.classList.toggle("active", selectedGenre === genre);
+      const count = votes.get(genre) || 0;
+      button.textContent = count > 0 ? `${genre} · ${count}` : genre;
+      button.addEventListener("click", async () => {
+        try {
+          button.disabled = true;
+          const response = await fetch(`/api/events/${encodeURIComponent(eventID)}/genre-vote`, {
+            method:"POST",
+            headers:{"Content-Type":"application/json"},
+            body:JSON.stringify({ genre, voterToken })
+          });
+          if (!response.ok) throw new Error("vote failed");
+          selectedGenre = genre;
+          localStorage.setItem(genreVoteKey, genre);
+          await loadGuestState();
+        } catch (_) {
+          button.disabled = false;
+        }
+      });
+      genreGrid.appendChild(button);
+    }
+  }
+
+  async function loadGuestState() {
+    try {
+      const response = await fetch(`/api/events/${encodeURIComponent(eventID)}/guest-state`, { cache:"no-store" });
+      if (!response.ok) throw new Error("guest state unavailable");
+      const state = await response.json();
+      const preferred = Array.isArray(state.preferredGenres) && state.preferredGenres.length
+        ? state.preferredGenres : fallbackGenres;
+      const voteGenres = Array.isArray(state.genreVotes) ? state.genreVotes.map(item => item.genre) : [];
+      const allGenres = [...new Set([...preferred, ...voteGenres, ...fallbackGenres])].slice(0, 12);
+      renderGenreVotes(allGenres, state.genreVotes || []);
+
+      const upcoming = Array.isArray(state.upcoming) ? state.upcoming : [];
+      timelineMini.replaceChildren();
+      if (upcoming.length) {
+        for (const item of upcoming) {
+          const row = document.createElement("div");
+          row.className = "timeline-mini-item";
+          const time = document.createElement("time");
+          const date = new Date(item.time);
+          time.textContent = Number.isFinite(date.getTime())
+            ? date.toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"})
+            : "—";
+          const label = document.createElement("span");
+          label.textContent = item.title;
+          row.append(time,label);
+          timelineMini.appendChild(row);
+        }
+        timelineMini.classList.add("visible");
+      } else {
+        timelineMini.classList.remove("visible");
+      }
+    } catch (_) {
+      renderGenreVotes(fallbackGenres, []);
+    }
+  }
 
   document.getElementById("eventName").textContent = eventName;
   document.title = `${eventName} · Musikwunsch`;
@@ -780,6 +912,9 @@
 
       popularChips.replaceChildren();
       for (const item of top) {
+        const group = document.createElement("div");
+        group.className = "popular-item";
+
         const chip = document.createElement("button");
         chip.type = "button";
         chip.className = "song-chip";
@@ -792,7 +927,37 @@
           searchClear.classList.add("visible");
           form.title.focus();
         });
-        popularChips.appendChild(chip);
+
+        const vote = document.createElement("button");
+        vote.type = "button";
+        vote.className = "vote-chip";
+        const requestID = item.representativeRequestID;
+        const already = requestID && votedRequests.has(requestID);
+        vote.classList.toggle("voted", already);
+        vote.textContent = already ? `♥ ${item.votes || 1}` : `♡ ${item.votes || 1}`;
+        vote.disabled = already || !requestID;
+        vote.setAttribute("aria-label", `${item.title} unterstützen`);
+        vote.addEventListener("click", async () => {
+          if (!requestID || votedRequests.has(requestID)) return;
+          vote.disabled = true;
+          try {
+            const response = await fetch(`/api/requests/${encodeURIComponent(requestID)}/vote`, {
+              method: "POST", headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ voterToken })
+            });
+            if (!response.ok) throw new Error("vote failed");
+            const body = await response.json();
+            votedRequests.add(requestID);
+            localStorage.setItem(votedKey, JSON.stringify([...votedRequests]));
+            vote.classList.add("voted");
+            vote.textContent = `♥ ${body.voteCount || item.votes || 1}`;
+          } catch (_) {
+            vote.disabled = false;
+          }
+        });
+
+        group.append(chip, vote);
+        popularChips.appendChild(group);
       }
       popular.classList.add("visible");
     } catch (_) {
@@ -815,7 +980,9 @@
     form.catalogID.value = "";
     form.catalogArtworkURL.value = "";
     form.catalogStoreURL.value = "";
+    form.catalogPreviewURL.value = "";
     form.catalogAlbum.value = "";
+    form.catalogGenre.value = "";
     if (!keepQuery) catalogSearch.value = "";
     searchClear.classList.toggle("visible", catalogSearch.value.length > 0);
   }
@@ -827,11 +994,14 @@
     form.catalogID.value = song.id || "";
     form.catalogArtworkURL.value = song.artworkURL || "";
     form.catalogStoreURL.value = song.storeURL || "";
+    form.catalogPreviewURL.value = song.previewURL || "";
     form.catalogAlbum.value = song.album || "";
+    form.catalogGenre.value = song.genre || "";
 
     selectedTitle.textContent = song.title || "—";
     selectedArtist.textContent = song.artist || "—";
-    selectedMeta.textContent = song.album ? `${song.album} · Katalogtreffer` : "Katalogtreffer";
+    const metaParts = [song.album, song.genre, "Katalogtreffer"].filter(Boolean);
+    selectedMeta.textContent = metaParts.join(" · ");
     selectedArtwork.src = song.artworkURL || "/djtoolkit-icon.png";
     selectedArtwork.onerror = () => { selectedArtwork.src = "/djtoolkit-icon.png"; };
     selectedSong.classList.add("visible");
@@ -973,7 +1143,12 @@
         played: "Gespielt ✓",
         declined: "Nicht eingeplant"
       };
-      const label = labels[row.status] || "Eingegangen";
+      let label = labels[row.status] || "Eingegangen";
+      if (row.publicStatusMessage) label = row.publicStatusMessage;
+      if (Number.isFinite(Number(row.estimatedMinutes)) && row.status !== "played" && row.status !== "declined") {
+        const mins = Math.max(0, Number(row.estimatedMinutes));
+        label += mins <= 1 ? " · wahrscheinlich bald" : ` · ca. ${mins} Min.`;
+      }
       document.getElementById("requestStatus").lastElementChild.textContent = label;
       if (row.status === "played" || row.status === "declined") {
         clearInterval(statusTimer);
@@ -998,6 +1173,7 @@
     setLoading(true);
 
     const payload = {
+      eventName,
       title,
       artist,
       guestName: normalize(form.guestName.value),
@@ -1006,7 +1182,9 @@
       catalogID: normalize(form.catalogID.value),
       catalogArtworkURL: normalize(form.catalogArtworkURL.value),
       catalogStoreURL: normalize(form.catalogStoreURL.value),
-      catalogAlbum: normalize(form.catalogAlbum.value)
+      catalogPreviewURL: normalize(form.catalogPreviewURL.value),
+      catalogAlbum: normalize(form.catalogAlbum.value),
+      catalogGenre: normalize(form.catalogGenre.value)
     };
 
     try {
@@ -1024,6 +1202,12 @@
       const row = await response.json();
       document.getElementById("successTitle").textContent = row.title;
       document.getElementById("successArtist").textContent = row.artist;
+      const statusLabel = document.getElementById("requestStatus").lastElementChild;
+      if (row.mergedDuplicate) {
+        statusLabel.textContent = `Schon gewünscht · jetzt ${row.voteCount || row.duplicateCount || 2} Stimmen`;
+      } else {
+        statusLabel.textContent = "Eingegangen";
+      }
 
       form.reset();
       resetCatalogSelection();
@@ -1055,6 +1239,7 @@
   });
 
   loadPublicSummary();
+  loadGuestState();
 })();
 </script>
 </body>
