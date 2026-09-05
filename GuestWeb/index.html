@@ -162,7 +162,67 @@
     .feedback-privacy{font-size:10px;color:#68758c;line-height:1.5}
     .feedback-hp{position:absolute!important;left:-9999px!important;width:1px!important;height:1px!important;opacity:0!important}
     @media(max-width:900px){.navlinks{display:none}.hero{grid-template-columns:1fr;padding-top:42px}.cards{grid-template-columns:1fr 1fr}.showcase{grid-template-columns:1fr}.wide{grid-template-columns:1fr 1fr}.feedback-invite{grid-template-columns:1fr}.feature-groups{grid-template-columns:1fr}.feature-gallery{grid-template-columns:1fr 1fr}}
-    @media(max-width:580px){.wrap{width:min(100% - 24px,1180px)}h1{font-size:54px}.cards{grid-template-columns:1fr}.metrics{grid-template-columns:1fr 1fr}.cta{align-items:flex-start;flex-direction:column}.wide{grid-template-columns:1fr 1fr}.feedback-grid{grid-template-columns:1fr}.feedback-fab{right:14px;bottom:14px}.feedback-dialog{padding:20px;border-radius:22px}.feature-gallery{grid-template-columns:1fr}}
+    @media(max-width:580px){
+      .wrap{width:min(100% - 24px,1180px)}
+      h1{font-size:54px}
+      .cards{grid-template-columns:1fr}
+      .metrics{grid-template-columns:1fr 1fr}
+      .cta{align-items:flex-start;flex-direction:column}
+      .wide{grid-template-columns:1fr 1fr}
+      .feedback-grid{grid-template-columns:1fr}
+      .feedback-fab{right:14px;bottom:14px}
+      .feedback-dialog{padding:20px;border-radius:22px}
+
+      /* Compact feature thumbnails on phones; tap to enlarge */
+      .feature-gallery{
+        grid-template-columns:repeat(2,minmax(0,1fr));
+        gap:10px;
+      }
+      .feature-shot{
+        min-height:0;
+        aspect-ratio:1/1;
+        border-radius:16px;
+      }
+      .feature-shot img{
+        width:100%;
+        height:100%;
+        aspect-ratio:1/1;
+        object-fit:cover;
+      }
+      .feature-shot:after{inset:47% 0 0}
+      .feature-shot-copy{
+        left:10px;
+        right:10px;
+        bottom:9px;
+      }
+      .feature-shot-copy b{
+        font-size:12px;
+        line-height:1.15;
+        margin-bottom:0;
+      }
+      .feature-shot-copy span{display:none}
+      .feature-shot .new-badge{
+        left:8px;
+        top:8px;
+        padding:5px 7px;
+        font-size:7px;
+        letter-spacing:.08em;
+      }
+      .feature-footnote{margin-top:12px;font-size:9px}
+      .lightbox{padding:12px}
+      .lightbox img{
+        max-width:96vw;
+        max-height:84vh;
+        border-radius:18px;
+      }
+      .lightbox-close{
+        right:12px;
+        top:12px;
+        width:40px;
+        height:40px;
+        border-radius:12px;
+      }
+    }
   </style>
 </head>
 <body>
@@ -453,8 +513,6 @@
           <select id="feedbackCategory" name="category">
             <option>Idee / Funktionswunsch</option>
             <option>App Feedback</option>
-            <option>GuestWeb / Requests</option>
-            <option>Analyze / DJ Copilot</option>
             <option>Fehler melden</option>
             <option>Allgemeines Feedback</option>
           </select>
