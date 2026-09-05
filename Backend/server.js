@@ -891,7 +891,7 @@ app.post("/api/feedback", async (req, res) => {
     "",
     "Was passiert jetzt?",
     "• Unser Team prüft deine Rückmeldung.",
-    "• Gute Ideen und Verbesserungsvorschläge fließen in unsere Produktplanung ein.",
+    "• Besonders hilfreiche Vorschläge berücksichtigen wir beim nächsten Update.",
     "• Falls wir Rückfragen haben, können wir dir direkt auf diese E-Mail antworten.",
     "",
     "Danke, dass du DJ Toolkit gemeinsam mit uns besser machst.",
@@ -1014,8 +1014,8 @@ app.post("/api/feedback", async (req, res) => {
                       <div style="width:30px;height:30px;line-height:30px;text-align:center;border-radius:10px;background:#211633;color:#cf8cff;font-weight:900;">2</div>
                     </td>
                     <td valign="top" style="padding:3px 0 14px;color:#aebbd0;font-size:13px;line-height:1.55;">
-                      <strong style="color:#ffffff;">Ideen fließen in die Weiterentwicklung ein.</strong><br>
-                      Besonders hilfreiche Vorschläge berücksichtigen wir bei neuen Features und Verbesserungen.
+                      <strong style="color:#ffffff;">Hilfreiche Vorschläge fürs nächste Update.</strong><br>
+                      Besonders hilfreiche Vorschläge berücksichtigen wir beim nächsten Update.
                     </td>
                   </tr>
                   <tr>
@@ -1050,7 +1050,7 @@ app.post("/api/feedback", async (req, res) => {
                     <a href="https://dj-toolkit.com" style="color:#9ba9bf;text-decoration:none;">dj-toolkit.com</a>
                   </div>
                   <div style="margin-top:14px;font-size:9px;line-height:1.5;color:#536077;">
-                    Diese Nachricht wurde automatisch versendet, weil über dj-toolkit.com Feedback mit dieser E-Mail-Adresse eingereicht wurde.
+                    Diese Nachricht wurde automatisch versendet, da dein Feedback mit dieser E-Mail-Adresse eingereicht wurde.
                   </div>
                 </div>
               </td>
@@ -1113,7 +1113,7 @@ app.get("/health", (_, res) => {
   res.set("Cache-Control", "no-store");
   res.json({
     ok: true,
-    version: "10.5.2",
+    version: "10.5.5",
     onlineAnalysis: true,
     catalogPreviewAudio: true,
     djMetadata: true,
