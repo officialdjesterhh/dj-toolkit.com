@@ -4,6 +4,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import crypto from "crypto";
 import fs from "fs";
+import nodemailer from "nodemailer";
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -14,10 +15,14 @@ const webDir = path.resolve(__dirname, "../GuestWeb");
 const storePath = path.resolve(__dirname, "requests.json");
 const eventStatePath = path.resolve(__dirname, "events.json");
 const requestRateBuckets = new Map();
+const feedbackRateBuckets = new Map();
 const RATE_WINDOW_MS = 60 * 1000;
 const MAX_REQUESTS_PER_MINUTE = 12;
+const FEEDBACK_RATE_WINDOW_MS = 15 * 60 * 1000;
+const MAX_FEEDBACK_PER_WINDOW = 5;
 
 const catalogSearchCache = new Map();
+const catalogGenreCache = new Map();
 const djMetadataCache = new Map();
 const CATALOG_CACHE_TTL_MS = 5 * 60 * 1000;
 const DJ_METADATA_CACHE_TTL_MS = 12 * 60 * 60 * 1000;
@@ -205,6 +210,111 @@ function requestRateAllowed(req, eventID) {
   current.push(now);
   requestRateBuckets.set(key, current);
   return true;
+}
+
+
+function feedbackRateAllowed(req) {
+  const address = req.headers["x-forwarded-for"]?.toString().split(",")[0]?.trim()
+    || req.socket?.remoteAddress || "unknown";
+  const now = Date.now();
+  const current = (feedbackRateBuckets.get(address) || [])
+    .filter(ts => now - ts < FEEDBACK_RATE_WINDOW_MS);
+
+  if (current.length >= MAX_FEEDBACK_PER_WINDOW) {
+    feedbackRateBuckets.set(address, current);
+    return false;
+  }
+
+  current.push(now);
+  feedbackRateBuckets.set(address, current);
+  return true;
+}
+
+function validEmail(value) {
+  const email = String(value || "").trim();
+  return email.length >= 5
+    && email.length <= 254
+    && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+function cleanPhone(value) {
+  const raw = String(value || "").trim().slice(0, 40);
+  if (!raw) return null;
+  return /^[+()\d\s./-]{5,40}$/.test(raw) ? raw : null;
+}
+
+function escapeHTML(value) {
+  return String(value || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function feedbackTransport() {
+  const host = String(process.env.SMTP_HOST || "").trim();
+  const user = String(process.env.SMTP_USER || "").trim();
+  const pass = String(process.env.SMTP_PASS || "").trim();
+  const port = Math.max(1, Math.min(65535, Number(process.env.SMTP_PORT || 587)));
+  const secure = String(process.env.SMTP_SECURE || "").toLowerCase() === "true" || port === 465;
+
+  if (!host || !user || !pass) return null;
+
+  return nodemailer.createTransport({
+    host,
+    port,
+    secure,
+    auth: { user, pass }
+  });
+}
+
+async function lookupCatalogGenre(artist, title, country = "DE") {
+  const cacheKey = `${country}:${normalizeLookupText(artist)}::${normalizeLookupText(title)}`;
+  const cached = catalogGenreCache.get(cacheKey);
+  if (cached && Date.now() - cached.createdAt < CATALOG_CACHE_TTL_MS) {
+    return cached.genre || null;
+  }
+
+  try {
+    const url = new URL("https://itunes.apple.com/search");
+    url.searchParams.set("term", `${artist} ${title}`);
+    url.searchParams.set("country", country);
+    url.searchParams.set("media", "music");
+    url.searchParams.set("entity", "song");
+    url.searchParams.set("limit", "8");
+    url.searchParams.set("explicit", "Yes");
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 3200);
+    const response = await fetch(url, {
+      signal: controller.signal,
+      headers: { "Accept": "application/json" }
+    }).finally(() => clearTimeout(timeout));
+
+    if (!response.ok) throw new Error(`catalog genre status ${response.status}`);
+    const body = await response.json();
+
+    let best = null;
+    for (const item of Array.isArray(body.results) ? body.results : []) {
+      if (!item?.trackName || !item?.artistName || !item?.primaryGenreName) continue;
+      const score = djMatchScore(title, artist, item.trackName, item.artistName);
+      if (score >= 0.68 && (!best || score > best.score)) {
+        best = {
+          score,
+          genre: String(item.primaryGenreName).trim().slice(0, 100)
+        };
+      }
+    }
+
+    const genre = best?.genre || null;
+    catalogGenreCache.set(cacheKey, { createdAt: Date.now(), genre });
+    return genre;
+  } catch (error) {
+    console.warn("catalog genre lookup unavailable", error?.message || error);
+    catalogGenreCache.set(cacheKey, { createdAt: Date.now(), genre: null });
+    return null;
+  }
 }
 
 function looksLikeSpam(...values) {
@@ -651,11 +761,167 @@ app.get("/api/dj-metadata", async (req, res) => {
   }
 });
 
+
+app.post("/api/feedback", async (req, res) => {
+  const website = String(req.body?.website || "").trim();
+  if (website) return res.status(201).json({ ok: true });
+
+  if (!feedbackRateAllowed(req)) {
+    return res.status(429).json({
+      error: "Zu viele Feedback-Nachrichten in kurzer Zeit. Bitte später erneut versuchen."
+    });
+  }
+
+  const email = String(req.body?.email || "").trim().toLowerCase();
+  const phoneRaw = String(req.body?.phone || "").trim();
+  const phone = cleanPhone(phoneRaw);
+  const name = String(req.body?.name || "").trim().slice(0, 100) || null;
+  const category = String(req.body?.category || "Allgemeines Feedback").trim().slice(0, 80);
+  const ratingValue = Number(req.body?.rating);
+  const rating = Number.isFinite(ratingValue) && ratingValue >= 1 && ratingValue <= 5
+    ? Math.round(ratingValue)
+    : null;
+  const message = String(req.body?.message || "").trim().slice(0, 5000);
+
+  if (!validEmail(email)) {
+    return res.status(400).json({ error: "Bitte gib eine gültige E-Mail-Adresse ein." });
+  }
+  if (phoneRaw && !phone) {
+    return res.status(400).json({ error: "Bitte prüfe die Mobilnummer." });
+  }
+  if (message.length < 5) {
+    return res.status(400).json({ error: "Bitte schreibe uns etwas mehr zu deinem Feedback." });
+  }
+  if (looksLikeSpam(name, email, category, message)) {
+    return res.status(400).json({ error: "Das Feedback wurde vom Spam-Schutz blockiert." });
+  }
+
+  const transport = feedbackTransport();
+  if (!transport) {
+    return res.status(503).json({
+      error: "Der Feedback-Mailversand ist noch nicht konfiguriert.",
+      code: "SMTP_NOT_CONFIGURED"
+    });
+  }
+
+  const feedbackTo = String(process.env.FEEDBACK_TO || "info@dj-toolkit.com").trim();
+  const smtpUser = String(process.env.SMTP_USER || "").trim();
+  const fromAddress = String(process.env.FEEDBACK_FROM || smtpUser || "info@dj-toolkit.com").trim();
+  const fromName = String(process.env.FEEDBACK_FROM_NAME || "DJ Toolkit").trim().slice(0, 80);
+  const from = `${fromName} <${fromAddress}>`;
+  const submittedAt = new Date().toISOString();
+
+  const ratingText = rating ? `${rating}/5` : "nicht angegeben";
+  const safeName = escapeHTML(name || "Nicht angegeben");
+  const safeEmail = escapeHTML(email);
+  const safePhone = escapeHTML(phone || "Nicht angegeben");
+  const safeCategory = escapeHTML(category);
+  const safeMessage = escapeHTML(message).replace(/\n/g, "<br>");
+  const safeRating = escapeHTML(ratingText);
+
+  const internalText = [
+    "Neues Feedback über dj-toolkit.com",
+    "",
+    `Name: ${name || "Nicht angegeben"}`,
+    `E-Mail: ${email}`,
+    `Mobil: ${phone || "Nicht angegeben"}`,
+    `Kategorie: ${category}`,
+    `Bewertung: ${ratingText}`,
+    `Zeit: ${submittedAt}`,
+    "",
+    "Feedback:",
+    message
+  ].join("\n");
+
+  const internalHTML = `
+    <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#070b13;color:#f7f9ff;padding:28px">
+      <div style="max-width:680px;margin:auto;background:#0d1422;border:1px solid #26324a;border-radius:20px;padding:26px">
+        <div style="font-size:12px;letter-spacing:.14em;color:#5fddff;font-weight:800">DJ TOOLKIT · WEBSITE FEEDBACK</div>
+        <h2 style="margin:8px 0 22px;font-size:26px">Neues Feedback</h2>
+        <table style="width:100%;border-collapse:collapse;color:#dbe5f7;font-size:14px">
+          <tr><td style="padding:7px 0;color:#8492aa">Name</td><td>${safeName}</td></tr>
+          <tr><td style="padding:7px 0;color:#8492aa">E-Mail</td><td>${safeEmail}</td></tr>
+          <tr><td style="padding:7px 0;color:#8492aa">Mobil</td><td>${safePhone}</td></tr>
+          <tr><td style="padding:7px 0;color:#8492aa">Kategorie</td><td>${safeCategory}</td></tr>
+          <tr><td style="padding:7px 0;color:#8492aa">Bewertung</td><td>${safeRating}</td></tr>
+        </table>
+        <div style="margin-top:22px;padding:18px;border-radius:14px;background:#080d17;line-height:1.65">${safeMessage}</div>
+      </div>
+    </div>`;
+
+  const thanksText = [
+    name ? `Hallo ${name},` : "Hallo,",
+    "",
+    "vielen Dank für dein Feedback zu DJ Toolkit.",
+    "Wir haben deine Nachricht erhalten und nehmen deine Rückmeldung in unsere Weiterentwicklung auf.",
+    "",
+    "Mehr Musik. Bessere Nächte.",
+    "",
+    "Dein DJ-Toolkit Team",
+    "info@dj-toolkit.com"
+  ].join("\n");
+
+  const thanksHTML = `
+    <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#05070d;color:#f7f9ff;padding:32px">
+      <div style="max-width:620px;margin:auto;background:linear-gradient(145deg,#101827,#080d16);border:1px solid #29344a;border-radius:24px;padding:30px">
+        <div style="font-size:12px;letter-spacing:.16em;color:#5fddff;font-weight:900">DJ TOOLKIT</div>
+        <h1 style="font-size:28px;margin:10px 0 18px">Danke für dein Feedback.</h1>
+        <p style="line-height:1.7;color:#b9c4d8">${name ? `Hallo ${escapeHTML(name)},` : "Hallo,"}</p>
+        <p style="line-height:1.7;color:#b9c4d8">wir haben deine Nachricht erhalten. Vielen Dank, dass du dir die Zeit genommen hast, DJ Toolkit mit deinem Feedback besser zu machen.</p>
+        <p style="line-height:1.7;color:#b9c4d8">Deine Rückmeldung fließt in die Weiterentwicklung von DJ Toolkit ein.</p>
+        <div style="margin-top:24px;padding-top:20px;border-top:1px solid #273147;color:#7bdfff;font-weight:800">Mehr Musik. Bessere Nächte.</div>
+        <p style="color:#8996ad;margin-bottom:0">Dein DJ-Toolkit Team<br>info@dj-toolkit.com</p>
+      </div>
+    </div>`;
+
+  try {
+    const results = await Promise.allSettled([
+      transport.sendMail({
+        from,
+        to: feedbackTo,
+        replyTo: email,
+        subject: `DJ Toolkit Feedback · ${category}${rating ? ` · ${rating}/5` : ""}`,
+        text: internalText,
+        html: internalHTML
+      }),
+      transport.sendMail({
+        from,
+        to: email,
+        replyTo: feedbackTo,
+        subject: "Danke für dein Feedback · DJ Toolkit",
+        text: thanksText,
+        html: thanksHTML
+      })
+    ]);
+
+    const feedbackDelivered = results[0].status === "fulfilled";
+    const confirmationDelivered = results[1].status === "fulfilled";
+
+    if (!feedbackDelivered) {
+      console.error("feedback delivery failed", results[0].reason?.message || results[0].reason);
+      return res.status(502).json({ error: "Das Feedback konnte gerade nicht per E-Mail zugestellt werden." });
+    }
+
+    if (!confirmationDelivered) {
+      console.warn("feedback confirmation failed", results[1].reason?.message || results[1].reason);
+    }
+
+    return res.status(201).json({
+      ok: true,
+      deliveredTo: feedbackTo,
+      confirmationSent: confirmationDelivered
+    });
+  } catch (error) {
+    console.error("feedback email failed", error?.message || error);
+    return res.status(502).json({ error: "Der Mailversand ist gerade nicht verfügbar." });
+  }
+});
+
 app.get("/health", (_, res) => {
   res.set("Cache-Control", "no-store");
   res.json({
     ok: true,
-    version: "10.2",
+    version: "10.3",
     onlineAnalysis: true,
     catalogPreviewAudio: true,
     djMetadata: true,
@@ -664,6 +930,10 @@ app.get("/health", (_, res) => {
     guestGenreVoting: true,
     eventMusicDirection: true,
     eventFormatRequestScoring: true,
+    requestGenreDisplay: true,
+    catalogGenreEnrichment: true,
+    websiteFeedback: true,
+    feedbackConfirmationEmail: true,
     clientPortal: true,
     requestETA: true,
     multiDJHandover: true,
@@ -711,12 +981,45 @@ app.get("/api/events/recent", (req, res) => {
   );
 });
 
-app.get("/api/events/:eventID/requests", (req, res) => {
-  const rows = readStore()
+app.get("/api/events/:eventID/requests", async (req, res) => {
+  const allRows = readStore();
+  const eventRows = allRows
     .filter(row => row.eventID === req.params.eventID)
     .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
-  res.json(rows.map(sanitizeRowForClient));
+  // V10.3 progressively fills missing genres for old/manual requests.
+  // Limit each pass so a large old event never blocks the Requests screen.
+  const missing = eventRows.filter(row => !String(row.requestGenre || "").trim()).slice(0, 12);
+
+  if (missing.length) {
+    const genres = await Promise.all(
+      missing.map(row => lookupCatalogGenre(row.artist, row.title).catch(() => null))
+    );
+    let changed = false;
+
+    missing.forEach((row, index) => {
+      const genre = genres[index];
+      if (!genre) return;
+      const stored = allRows.find(item => item.id === row.id);
+      if (!stored) return;
+
+      stored.requestGenre = genre;
+      const state = getEventState(stored.eventID);
+      const formatMeta = requestFormatMeta(state, genre);
+      stored.eventMusicDirection = formatMeta.musicDirection;
+      stored.formatCompatibility = formatMeta.formatCompatibility;
+      stored.formatWarning = formatMeta.formatWarning;
+      changed = true;
+    });
+
+    if (changed) writeStore(allRows);
+  }
+
+  const refreshed = allRows
+    .filter(row => row.eventID === req.params.eventID)
+    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+  res.json(refreshed.map(sanitizeRowForClient));
 });
 
 app.get("/api/events/:eventID/public-summary", (req, res) => {
@@ -773,7 +1076,7 @@ app.get("/api/requests/:requestID/public", (req, res) => {
   });
 });
 
-app.post("/api/events/:eventID/requests", (req, res) => {
+app.post("/api/events/:eventID/requests", async (req, res) => {
   const artist = String(req.body.artist || "").trim();
   const title = String(req.body.title || "").trim();
   const honeypot = String(req.body.website || "").trim();
@@ -794,7 +1097,12 @@ app.post("/api/events/:eventID/requests", (req, res) => {
   }
 
   const eventState = getEventState(req.params.eventID);
-  const requestGenre = String(req.body.catalogGenre || "").trim().slice(0, 100) || null;
+  let requestGenre = String(req.body.catalogGenre || "").trim().slice(0, 100) || null;
+
+  if (!requestGenre) {
+    requestGenre = await lookupCatalogGenre(artist, title).catch(() => null);
+  }
+
   const formatMeta = requestFormatMeta(eventState, requestGenre);
 
   const rows = readStore();
@@ -812,6 +1120,9 @@ app.post("/api/events/:eventID/requests", (req, res) => {
     existing.duplicateCount = Math.max(1, Number(existing.duplicateCount || 1)) + 1;
     existing.voteCount = Math.max(1, Number(existing.voteCount || 1)) + 1;
     existing.lastRequestAt = new Date().toISOString();
+    if (!String(existing.requestGenre || "").trim() && requestGenre) {
+      existing.requestGenre = requestGenre;
+    }
     existing.eventMusicDirection = formatMeta.musicDirection;
     existing.formatCompatibility = formatMeta.formatCompatibility;
     existing.formatWarning = formatMeta.formatWarning;
