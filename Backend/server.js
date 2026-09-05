@@ -27,6 +27,7 @@ const storePath = path.resolve(__dirname, "requests.json");
 const eventStatePath = path.resolve(__dirname, "events.json");
 const feedbackStatePath = String(process.env.FEEDBACK_STATE_PATH || path.resolve(__dirname, "feedback-state.json"));
 const newsletterStatePath = String(process.env.NEWSLETTER_STATE_PATH || path.resolve(__dirname, "newsletter-subscribers.json"));
+const newsletterCampaignStatePath = String(process.env.NEWSLETTER_CAMPAIGN_STATE_PATH || path.resolve(__dirname, "newsletter-campaigns.json"));
 const requestRateBuckets = new Map();
 const feedbackRateBuckets = new Map();
 const newsletterRateBuckets = new Map();
@@ -104,6 +105,25 @@ async function initDatabase() {
 
   await db.query(`CREATE INDEX IF NOT EXISTS idx_newsletter_status ON newsletter_subscribers(status)`);
   await db.query(`CREATE INDEX IF NOT EXISTS idx_newsletter_confirm_hash ON newsletter_subscribers(confirm_token_hash)`);
+
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS newsletter_campaigns (
+      id TEXT PRIMARY KEY,
+      subject TEXT NOT NULL,
+      title TEXT NOT NULL,
+      intro TEXT,
+      body_text TEXT NOT NULL,
+      cta_label TEXT,
+      cta_url TEXT,
+      audience TEXT NOT NULL,
+      recipients INTEGER NOT NULL DEFAULT 0,
+      sent INTEGER NOT NULL DEFAULT 0,
+      failed INTEGER NOT NULL DEFAULT 0,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+
+  await db.query(`CREATE INDEX IF NOT EXISTS idx_newsletter_campaign_created ON newsletter_campaigns(created_at DESC)`);
 
   console.log("DJ Toolkit Postgres persistence ready.");
 }
@@ -323,6 +343,218 @@ async function confirmedNewsletterSubscribers() {
     `SELECT * FROM newsletter_subscribers WHERE status='confirmed' ORDER BY confirmed_at ASC NULLS LAST`
   );
   return result.rows.map(rowToNewsletterSubscriber);
+}
+
+
+async function allNewsletterSubscribers() {
+  if (!db) return newsletterStore().subscribers;
+  const result = await db.query(`
+    SELECT *
+    FROM newsletter_subscribers
+    ORDER BY COALESCE(confirmed_at, created_at) DESC
+  `);
+  return result.rows.map(rowToNewsletterSubscriber);
+}
+
+function adminAuthorized(req) {
+  const configuredToken = String(process.env.NEWSLETTER_ADMIN_TOKEN || "").trim();
+  const auth = String(req.headers.authorization || "");
+  const providedToken = auth.startsWith("Bearer ") ? auth.slice(7).trim() : "";
+
+  if (!configuredToken || !providedToken) return false;
+
+  const configuredBuffer = Buffer.from(configuredToken);
+  const providedBuffer = Buffer.from(providedToken);
+  if (configuredBuffer.length !== providedBuffer.length) return false;
+
+  try {
+    return crypto.timingSafeEqual(configuredBuffer, providedBuffer);
+  } catch {
+    return false;
+  }
+}
+
+async function newsletterAdminSnapshot() {
+  const subscribers = await allNewsletterSubscribers();
+  const counts = {
+    total: subscribers.length,
+    confirmed: 0,
+    pending: 0,
+    unsubscribed: 0,
+    release: 0,
+    beta: 0,
+    updates: 0
+  };
+
+  for (const subscriber of subscribers) {
+    if (subscriber.status === "confirmed") {
+      counts.confirmed += 1;
+      const interests = newsletterInterests(subscriber.interests);
+      if (interests.includes("release")) counts.release += 1;
+      if (interests.includes("beta")) counts.beta += 1;
+      if (interests.includes("updates")) counts.updates += 1;
+    } else if (subscriber.status === "pending") {
+      counts.pending += 1;
+    } else if (subscriber.status === "unsubscribed") {
+      counts.unsubscribed += 1;
+    }
+  }
+
+  return {
+    counts,
+    recent: subscribers.slice(0, 50).map(item => ({
+      id: item.id,
+      email: item.email,
+      name: item.name,
+      status: item.status,
+      interests: newsletterInterests(item.interests),
+      createdAt: item.createdAt,
+      confirmedAt: item.confirmedAt,
+      unsubscribedAt: item.unsubscribedAt
+    }))
+  };
+}
+
+async function saveNewsletterCampaign(campaign) {
+  if (!db) {
+    const current = readJSONFile(newsletterCampaignStatePath, { campaigns: [] });
+    const campaigns = Array.isArray(current?.campaigns) ? current.campaigns : [];
+    campaigns.unshift(campaign);
+    writeJSONFile(newsletterCampaignStatePath, {
+      campaigns: campaigns.slice(0, 100),
+      updatedAt: new Date().toISOString()
+    });
+    return campaign;
+  }
+
+  const result = await db.query(`
+    INSERT INTO newsletter_campaigns (
+      id, subject, title, intro, body_text, cta_label, cta_url,
+      audience, recipients, sent, failed, created_at
+    )
+    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
+    RETURNING *
+  `, [
+    campaign.id,
+    campaign.subject,
+    campaign.title,
+    campaign.intro || null,
+    campaign.body || "",
+    campaign.ctaLabel || null,
+    campaign.ctaURL || null,
+    campaign.audience,
+    campaign.recipients || 0,
+    campaign.sent || 0,
+    campaign.failed || 0,
+    campaign.createdAt
+  ]);
+
+  return result.rows?.[0] || campaign;
+}
+
+async function recentNewsletterCampaigns(limit = 20) {
+  const safeLimit = Math.min(100, Math.max(1, Number(limit) || 20));
+
+  if (!db) {
+    const current = readJSONFile(newsletterCampaignStatePath, { campaigns: [] });
+    const campaigns = Array.isArray(current?.campaigns) ? current.campaigns : [];
+    return campaigns.slice(0, safeLimit);
+  }
+
+  const result = await db.query(`
+    SELECT
+      id, subject, title, intro, body_text, cta_label, cta_url,
+      audience, recipients, sent, failed, created_at
+    FROM newsletter_campaigns
+    ORDER BY created_at DESC
+    LIMIT $1
+  `, [safeLimit]);
+
+  return result.rows.map(row => ({
+    id: row.id,
+    subject: row.subject,
+    title: row.title,
+    intro: row.intro,
+    body: row.body_text,
+    ctaLabel: row.cta_label,
+    ctaURL: row.cta_url,
+    audience: row.audience,
+    recipients: Number(row.recipients || 0),
+    sent: Number(row.sent || 0),
+    failed: Number(row.failed || 0),
+    createdAt: row.created_at ? new Date(row.created_at).toISOString() : null
+  }));
+}
+
+function buildNewsletterMessage({
+  subscriber,
+  subject,
+  title,
+  intro,
+  bodyText,
+  ctaLabel,
+  ctaURL,
+  isTest = false
+}) {
+  const baseURL = publicBaseURL();
+  const unsubscribeURL = isTest
+    ? null
+    : `${baseURL}/api/newsletter/unsubscribe?token=${encodeURIComponent(subscriber.unsubscribeToken)}`;
+
+  const safeTitle = escapeHTML(title);
+  const safeIntro = escapeHTML(intro).replace(/\n/g, "<br>");
+  const safeBody = escapeHTML(bodyText).replace(/\n/g, "<br>");
+  const safeCTA = escapeHTML(ctaLabel);
+  const safeCTAURL = escapeHTML(ctaURL);
+  const safeName = escapeHTML(subscriber.name || "");
+
+  const text = [
+    subscriber.name ? `Hallo ${subscriber.name},` : "Hallo,",
+    "",
+    isTest ? "[TESTVERSAND]" : null,
+    title,
+    intro,
+    "",
+    bodyText,
+    "",
+    `${ctaLabel}: ${ctaURL}`,
+    "",
+    isTest ? "Dies ist eine Testmail aus der DJ-Toolkit Newsletter-Verwaltung." : "Newsletter abbestellen:",
+    isTest ? null : unsubscribeURL
+  ].filter(Boolean).join("\n");
+
+  const footer = isTest
+    ? `Dies ist eine <strong style="color:#c8b8ff">Testmail</strong> aus der DJ-Toolkit Newsletter-Verwaltung. Sie wurde nicht an die Newsletter-Liste gesendet.`
+    : `Du erhältst diese Nachricht, weil du den DJ-Toolkit Newsletter bestätigt hast.
+       <a href="${escapeHTML(unsubscribeURL)}" style="color:#8edfff">Newsletter abbestellen</a>`;
+
+  const html = `<!doctype html><html lang="de"><body style="margin:0;background:#05070d;color:#f7f9ff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#05070d"><tr><td align="center" style="padding:36px 16px">
+      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:660px;background:#0b111d;border:1px solid #243049;border-radius:24px;overflow:hidden">
+        <tr><td><div style="height:5px;background:linear-gradient(90deg,#16cfff,#5b7cff,#9b5dff,#e14dff)">&nbsp;</div></td></tr>
+        <tr><td style="padding:32px">
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+            <tr>
+              <td>
+                <div style="font-size:10px;letter-spacing:.15em;color:#6edfff;font-weight:900">DJ TOOLKIT · ${isTest ? "TESTMAIL" : "UPDATE"}</div>
+              </td>
+              <td align="right">
+                ${isTest ? `<span style="display:inline-block;padding:6px 9px;border-radius:999px;background:#211633;border:1px solid #55367d;color:#d5b6ff;font-size:9px;font-weight:900">TEST</span>` : ""}
+              </td>
+            </tr>
+          </table>
+          <h1 style="font-size:32px;line-height:1.1;margin:10px 0 15px">${safeTitle}</h1>
+          <p style="font-size:14px;color:#9ba8bd;line-height:1.65">${safeName ? `Hallo ${safeName},` : "Hallo,"}</p>
+          ${safeIntro ? `<p style="font-size:16px;color:#d0d9e8;line-height:1.7">${safeIntro}</p>` : ""}
+          <div style="font-size:14px;color:#aebbd0;line-height:1.75">${safeBody}</div>
+          <div style="padding:24px 0 10px"><a href="${safeCTAURL}" style="display:inline-block;padding:14px 20px;border-radius:14px;background:linear-gradient(105deg,#168fff,#785bff 68%,#b952ff);color:#fff;text-decoration:none;font-weight:900">${safeCTA} →</a></div>
+          <div style="margin-top:24px;padding-top:18px;border-top:1px solid #202a3d;color:#607089;font-size:9px;line-height:1.6">${footer}</div>
+        </td></tr>
+      </table>
+    </td></tr></table>
+  </body></html>`;
+
+  return { subject, text, html };
 }
 
 function tokenHash(value) {
@@ -1674,15 +1906,120 @@ app.get("/api/newsletter/unsubscribe", async (req, res) => {
   }));
 });
 
-app.post("/api/admin/newsletter/send", async (req, res) => {
-  const configuredToken = String(process.env.NEWSLETTER_ADMIN_TOKEN || "").trim();
-  const auth = String(req.headers.authorization || "");
-  const providedToken = auth.startsWith("Bearer ") ? auth.slice(7).trim() : "";
+app.get("/api/admin/newsletter/dashboard", async (req, res) => {
+  if (!adminAuthorized(req)) {
+    return res.status(401).json({ error: "Nicht autorisiert." });
+  }
 
-  if (!configuredToken || !providedToken || !crypto.timingSafeEqual(
-    Buffer.from(configuredToken),
-    Buffer.from(providedToken.padEnd(configuredToken.length).slice(0, configuredToken.length))
-  )) {
+  try {
+    const snapshot = await newsletterAdminSnapshot();
+    const campaigns = await recentNewsletterCampaigns(20);
+    return res.json({
+      ok: true,
+      counts: snapshot.counts,
+      recentSubscribers: snapshot.recent,
+      campaigns,
+      database: db ? "Postgres" : "JSON fallback"
+    });
+  } catch (error) {
+    console.error("newsletter admin dashboard failed", error);
+    return res.status(500).json({ error: "Newsletter-Dashboard konnte nicht geladen werden." });
+  }
+});
+
+app.get("/api/admin/newsletter/subscribers", async (req, res) => {
+  if (!adminAuthorized(req)) {
+    return res.status(401).json({ error: "Nicht autorisiert." });
+  }
+
+  try {
+    const status = String(req.query?.status || "all").trim();
+    const query = String(req.query?.q || "").trim().toLowerCase().slice(0, 120);
+    const allowedStatus = new Set(["all", "confirmed", "pending", "unsubscribed"]);
+    if (!allowedStatus.has(status)) {
+      return res.status(400).json({ error: "Ungültiger Statusfilter." });
+    }
+
+    let subscribers = await allNewsletterSubscribers();
+    if (status !== "all") subscribers = subscribers.filter(item => item.status === status);
+    if (query) {
+      subscribers = subscribers.filter(item =>
+        String(item.email || "").toLowerCase().includes(query)
+        || String(item.name || "").toLowerCase().includes(query)
+      );
+    }
+
+    return res.json({
+      ok: true,
+      subscribers: subscribers.slice(0, 500).map(item => ({
+        id: item.id,
+        email: item.email,
+        name: item.name,
+        status: item.status,
+        interests: newsletterInterests(item.interests),
+        createdAt: item.createdAt,
+        confirmedAt: item.confirmedAt,
+        unsubscribedAt: item.unsubscribedAt
+      }))
+    });
+  } catch (error) {
+    console.error("newsletter subscriber list failed", error);
+    return res.status(500).json({ error: "Abonnenten konnten nicht geladen werden." });
+  }
+});
+
+app.post("/api/admin/newsletter/test", async (req, res) => {
+  if (!adminAuthorized(req)) {
+    return res.status(401).json({ error: "Nicht autorisiert." });
+  }
+
+  const email = String(req.body?.email || "").trim().toLowerCase();
+  const subject = String(req.body?.subject || "").trim().slice(0, 180);
+  const title = String(req.body?.title || "").trim().slice(0, 180);
+  const intro = String(req.body?.intro || "").trim().slice(0, 1200);
+  const bodyText = String(req.body?.body || "").trim().slice(0, 6000);
+  const ctaLabel = String(req.body?.ctaLabel || "DJ Toolkit öffnen").trim().slice(0, 80);
+  const ctaURL = String(req.body?.ctaURL || publicBaseURL()).trim().slice(0, 500);
+
+  if (!validEmail(email)) {
+    return res.status(400).json({ error: "Bitte gib eine gültige Test-E-Mail-Adresse ein." });
+  }
+  if (!subject || !title || !bodyText) {
+    return res.status(400).json({ error: "Betreff, Titel und Nachricht sind erforderlich." });
+  }
+
+  const fromAddress = String(process.env.FEEDBACK_FROM || "info@dj-toolkit.com").trim();
+  const fromName = String(process.env.FEEDBACK_FROM_NAME || "DJ Toolkit").trim().slice(0, 80);
+  const from = `${fromName} <${fromAddress}>`;
+
+  try {
+    const message = buildNewsletterMessage({
+      subscriber: { email, name: "DJ Toolkit Admin", unsubscribeToken: "" },
+      subject: `[TEST] ${subject}`,
+      title,
+      intro,
+      bodyText,
+      ctaLabel,
+      ctaURL,
+      isTest: true
+    });
+
+    await sendFeedbackEmail({
+      from,
+      to: [email],
+      reply_to: String(process.env.FEEDBACK_TO || "info@dj-toolkit.com").trim(),
+      ...message
+    });
+
+    return res.json({ ok: true, sentTo: email });
+  } catch (error) {
+    console.error("newsletter test send failed", error);
+    return res.status(502).json({ error: "Die Testmail konnte nicht gesendet werden." });
+  }
+});
+
+app.post("/api/admin/newsletter/send", async (req, res) => {
+  if (!adminAuthorized(req)) {
     return res.status(401).json({ error: "Nicht autorisiert." });
   }
 
@@ -1695,7 +2032,7 @@ app.post("/api/admin/newsletter/send", async (req, res) => {
   const audience = String(req.body?.audience || "all").trim();
 
   if (!subject || !title || !bodyText) {
-    return res.status(400).json({ error: "subject, title und body sind erforderlich." });
+    return res.status(400).json({ error: "Betreff, Titel und Nachricht sind erforderlich." });
   }
 
   const allowedAudiences = new Set(["all", "release", "beta", "updates"]);
@@ -1712,56 +2049,24 @@ app.post("/api/admin/newsletter/send", async (req, res) => {
   const fromAddress = String(process.env.FEEDBACK_FROM || "info@dj-toolkit.com").trim();
   const fromName = String(process.env.FEEDBACK_FROM_NAME || "DJ Toolkit").trim().slice(0, 80);
   const from = `${fromName} <${fromAddress}>`;
-  const baseURL = publicBaseURL();
 
   const sendOne = async subscriber => {
-    const unsubscribeURL = `${baseURL}/api/newsletter/unsubscribe?token=${encodeURIComponent(subscriber.unsubscribeToken)}`;
-    const safeTitle = escapeHTML(title);
-    const safeIntro = escapeHTML(intro).replace(/\n/g, "<br>");
-    const safeBody = escapeHTML(bodyText).replace(/\n/g, "<br>");
-    const safeCTA = escapeHTML(ctaLabel);
-    const safeCTAURL = escapeHTML(ctaURL);
-
-    const text = [
-      subscriber.name ? `Hallo ${subscriber.name},` : "Hallo,",
-      "",
+    const message = buildNewsletterMessage({
+      subscriber,
+      subject,
       title,
       intro,
-      "",
       bodyText,
-      "",
-      `${ctaLabel}: ${ctaURL}`,
-      "",
-      "Newsletter abbestellen:",
-      unsubscribeURL
-    ].filter(Boolean).join("\n");
-
-    const html = `<!doctype html><html lang="de"><body style="margin:0;background:#05070d;color:#f7f9ff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif">
-      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#05070d"><tr><td align="center" style="padding:36px 16px">
-        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:660px;background:#0b111d;border:1px solid #243049;border-radius:24px;overflow:hidden">
-          <tr><td><div style="height:5px;background:linear-gradient(90deg,#16cfff,#5b7cff,#9b5dff,#e14dff)">&nbsp;</div></td></tr>
-          <tr><td style="padding:32px">
-            <div style="font-size:10px;letter-spacing:.15em;color:#6edfff;font-weight:900">DJ TOOLKIT · UPDATE</div>
-            <h1 style="font-size:32px;line-height:1.1;margin:9px 0 15px">${safeTitle}</h1>
-            ${safeIntro ? `<p style="font-size:16px;color:#d0d9e8;line-height:1.7">${safeIntro}</p>` : ""}
-            <div style="font-size:14px;color:#aebbd0;line-height:1.75">${safeBody}</div>
-            <div style="padding:24px 0 10px"><a href="${safeCTAURL}" style="display:inline-block;padding:14px 20px;border-radius:14px;background:linear-gradient(105deg,#168fff,#785bff 68%,#b952ff);color:#fff;text-decoration:none;font-weight:900">${safeCTA} →</a></div>
-            <div style="margin-top:24px;padding-top:18px;border-top:1px solid #202a3d;color:#607089;font-size:9px;line-height:1.6">
-              Du erhältst diese Nachricht, weil du den DJ-Toolkit Newsletter bestätigt hast.
-              <a href="${escapeHTML(unsubscribeURL)}" style="color:#8edfff">Newsletter abbestellen</a>
-            </div>
-          </td></tr>
-        </table>
-      </td></tr></table>
-    </body></html>`;
+      ctaLabel,
+      ctaURL,
+      isTest: false
+    });
 
     return sendFeedbackEmail({
       from,
       to: [subscriber.email],
       reply_to: String(process.env.FEEDBACK_TO || "info@dj-toolkit.com").trim(),
-      subject,
-      text,
-      html
+      ...message
     });
   };
 
@@ -1778,8 +2083,30 @@ app.post("/api/admin/newsletter/send", async (req, res) => {
     }
   }
 
+  const campaign = {
+    id: `DJT-NL-C-${crypto.randomBytes(6).toString("hex").toUpperCase()}`,
+    subject,
+    title,
+    intro,
+    body: bodyText,
+    ctaLabel,
+    ctaURL,
+    audience,
+    recipients: recipients.length,
+    sent,
+    failed,
+    createdAt: new Date().toISOString()
+  };
+
+  try {
+    await saveNewsletterCampaign(campaign);
+  } catch (error) {
+    console.warn("newsletter campaign history save failed", error?.message || error);
+  }
+
   return res.json({
     ok: failed === 0,
+    campaignId: campaign.id,
     audience,
     recipients: recipients.length,
     sent,
@@ -1791,7 +2118,7 @@ app.get("/health", (_, res) => {
   res.set("Cache-Control", "no-store");
   res.json({
     ok: true,
-    version: "10.7.0",
+    version: "10.8.0",
     onlineAnalysis: true,
     catalogPreviewAudio: true,
     djMetadata: true,
@@ -1807,6 +2134,9 @@ app.get("/health", (_, res) => {
     feedbackReferenceNumbers: true,
     newsletterDoubleOptIn: true,
     newsletterCampaignAPI: true,
+    newsletterAdminDashboard: true,
+    newsletterCampaignHistory: true,
+    newsletterTestSend: true,
     newsletterUnsubscribe: true,
     postgresPersistence: Boolean(db),
     persistentFeedbackSequence: Boolean(db),
