@@ -1,0 +1,320 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#05070d">
+  <meta name="description" content="Animierte DJ Toolkit Demos für Analyze, Booth Safety und Light Matching.">
+  <title>Live Demos · DJ Toolkit</title>
+  <link rel="icon" href="/djtoolkit-icon.png">
+  <link rel="apple-touch-icon" href="/djtoolkit-icon.png">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <style>
+    :root{
+      color-scheme:dark;
+      --bg:#04060b;--panel:#0a111d;--panel2:#0e1726;--line:rgba(255,255,255,.08);
+      --text:#f7f9ff;--muted:#8d9ab0;--cyan:#25dfff;--blue:#347fff;--violet:#835dff;
+      --magenta:#e151ff;--green:#46e7a5;--amber:#ffd06b;--red:#ff6677;
+      font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text",Inter,system-ui,sans-serif
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;min-height:100%;background:var(--bg);color:var(--text)}
+    html{scroll-behavior:smooth}
+    body{
+      overflow-x:hidden;
+      background:
+        radial-gradient(circle at 8% -5%,rgba(37,223,255,.15),transparent 30rem),
+        radial-gradient(circle at 96% 3%,rgba(225,81,255,.15),transparent 33rem),
+        linear-gradient(180deg,#07101a 0%,#04060b 54%,#030509 100%);
+    }
+    body:before{
+      content:"";position:fixed;inset:0;pointer-events:none;opacity:.10;
+      background-image:linear-gradient(rgba(255,255,255,.026) 1px,transparent 1px),
+      linear-gradient(90deg,rgba(255,255,255,.026) 1px,transparent 1px);
+      background-size:40px 40px;mask-image:linear-gradient(#000,transparent 80%)
+    }
+    a{color:inherit}
+    .wrap{width:min(1120px,calc(100% - 34px));margin:auto}
+    nav{height:82px;display:flex;align-items:center;justify-content:space-between;gap:20px}
+    .brand{display:flex;align-items:center;gap:12px;font-weight:900;letter-spacing:.05em;text-decoration:none}
+    .brand img{width:44px;height:44px;border-radius:13px;box-shadow:0 0 30px rgba(52,127,255,.28)}
+    .navlinks{display:flex;gap:22px;align-items:center}
+    .navlinks a{text-decoration:none;color:#aeb8ca;font-size:13px;font-weight:760}
+    .navlinks a:hover,.navlinks a.active{color:#fff}
+    .hero{padding:60px 0 40px;text-align:center}
+    .eyebrow{font-size:10px;font-weight:900;letter-spacing:.18em;color:#7fe5ff}
+    h1{font-size:clamp(52px,8vw,84px);line-height:.95;letter-spacing:-.06em;margin:14px 0 18px}
+    .grad{background:linear-gradient(98deg,var(--cyan),#6a8cff 45%,#a062ff 70%,var(--magenta));-webkit-background-clip:text;background-clip:text;color:transparent}
+    .lead{max-width:760px;margin:auto;color:#9ca8bc;font-size:clamp(16px,2vw,19px);line-height:1.65}
+    .demo-nav{display:flex;justify-content:center;gap:9px;flex-wrap:wrap;margin:29px 0 0}
+    .demo-nav a{padding:10px 14px;border:1px solid var(--line);border-radius:999px;text-decoration:none;color:#a9b5c9;background:rgba(255,255,255,.035);font-size:10px;font-weight:900}
+    .demo-nav a:hover{color:#fff;border-color:rgba(65,198,255,.3)}
+    .section{padding:34px 0 54px;scroll-margin-top:24px}
+    .section-head{display:flex;justify-content:space-between;align-items:end;gap:20px;margin-bottom:18px}
+    .section-head small{display:block;color:#6fe2ff;font-size:8px;font-weight:900;letter-spacing:.16em;margin-bottom:7px}
+    .section-head h2{font-size:clamp(29px,4vw,42px);letter-spacing:-.045em;margin:0}
+    .section-head p{max-width:500px;color:#8996ab;font-size:12px;line-height:1.55;margin:0}
+    .demo-card{
+      position:relative;overflow:hidden;border:1px solid rgba(255,255,255,.08);
+      border-radius:28px;background:
+        radial-gradient(circle at 10% 0%,rgba(37,223,255,.09),transparent 28%),
+        radial-gradient(circle at 95% 100%,rgba(225,81,255,.08),transparent 28%),
+        linear-gradient(145deg,rgba(14,23,39,.95),rgba(6,10,18,.96));
+      box-shadow:0 24px 80px rgba(0,0,0,.22)
+    }
+    .demo-label{
+      position:absolute;z-index:6;left:16px;top:16px;padding:7px 9px;border-radius:999px;
+      border:1px solid rgba(255,255,255,.09);background:rgba(3,8,14,.72);backdrop-filter:blur(10px);
+      color:#8ee8ff;font-size:7px;font-weight:900;letter-spacing:.12em
+    }
+
+    /* Analyze */
+    .analyze-demo{padding:68px 24px 24px}
+    .wave-shell{height:170px;border-radius:20px;border:1px solid rgba(255,255,255,.06);background:#050a12;position:relative;overflow:hidden;padding:20px}
+    .wave-shell:before{content:"";position:absolute;inset:0;background:linear-gradient(rgba(255,255,255,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.025) 1px,transparent 1px);background-size:30px 30px}
+    .wave{position:relative;z-index:2;height:100%;display:flex;align-items:center;gap:4px}
+    .wave span{flex:1;min-width:3px;max-width:11px;border-radius:999px;background:linear-gradient(180deg,var(--cyan),#6f7cff 53%,var(--magenta));transform-origin:center;animation:waveMove var(--s,1s) ease-in-out var(--d,0s) infinite alternate}
+    .scan{position:absolute;z-index:3;top:12px;bottom:12px;width:2px;left:-2%;background:linear-gradient(transparent,#b3f4ff,transparent);box-shadow:0 0 22px rgba(85,225,255,.8);animation:scanMove 3.2s linear infinite}
+    .metrics{display:grid;grid-template-columns:repeat(5,1fr);gap:9px;margin-top:11px}
+    .metric{padding:12px;border:1px solid rgba(255,255,255,.055);border-radius:14px;background:rgba(255,255,255,.025)}
+    .metric b{display:block;font-size:15px}
+    .metric span{font-size:7px;color:#6d7c93;letter-spacing:.08em}
+    @keyframes waveMove{0%{transform:scaleY(.28)}35%{transform:scaleY(.8)}70%{transform:scaleY(1.1)}100%{transform:scaleY(.45)}}
+    @keyframes scanMove{to{left:102%}}
+
+    /* Booth Safety */
+    .booth-demo{padding:67px 22px 22px}
+    .booth-grid{display:grid;grid-template-columns:1.15fr .85fr;gap:14px}
+    .monitor,.safety-stack{border:1px solid rgba(255,255,255,.06);border-radius:21px;background:rgba(3,8,14,.64)}
+    .monitor{padding:18px}
+    .monitor-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+    .monitor-head b{font-size:15px}
+    .live-pill{display:inline-flex;gap:7px;align-items:center;color:#9df1c8;font-size:8px;font-weight:900;letter-spacing:.08em}
+    .live-pill i{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 14px rgba(70,231,165,.8);animation:pulse 1.25s ease-in-out infinite}
+    .signal{height:82px;display:flex;align-items:flex-end;gap:5px;padding:11px;border-radius:15px;background:#061018;border:1px solid rgba(255,255,255,.05);overflow:hidden}
+    .signal span{flex:1;border-radius:7px 7px 2px 2px;background:linear-gradient(180deg,#58f0b5,#26dfff);animation:signalMove var(--s,1.2s) ease-in-out var(--d,0s) infinite alternate}
+    .monitor-meta{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
+    .monitor-meta div{padding:10px;border-radius:12px;background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.05)}
+    .monitor-meta b{font-size:12px;display:block}
+    .monitor-meta span{font-size:7px;color:#6d7c93}
+    .safety-stack{padding:12px;display:grid;gap:8px}
+    .safety-item{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px;border-radius:14px;border:1px solid rgba(255,255,255,.05);background:rgba(255,255,255,.022)}
+    .safety-item div{display:grid;gap:3px}
+    .safety-item b{font-size:11px}
+    .safety-item small{font-size:7px;color:#6f7d93}
+    .status{padding:6px 8px;border-radius:999px;font-size:7px;font-weight:900;letter-spacing:.06em}
+    .ok{background:rgba(70,231,165,.08);border:1px solid rgba(70,231,165,.18);color:#91efc1}
+    .armed{background:rgba(37,223,255,.07);border:1px solid rgba(37,223,255,.17);color:#8be7ff}
+    .backup{background:rgba(255,208,107,.07);border:1px solid rgba(255,208,107,.16);color:#ffd985}
+    .sweep{position:absolute;left:0;right:0;height:1px;top:50%;background:linear-gradient(90deg,transparent,rgba(69,227,255,.8),transparent);box-shadow:0 0 20px rgba(69,227,255,.5);animation:safetySweep 3.8s ease-in-out infinite}
+    @keyframes signalMove{from{transform:scaleY(.28)}to{transform:scaleY(1)}}
+    @keyframes safetySweep{0%,100%{top:12%;opacity:.25}50%{top:88%;opacity:1}}
+    @keyframes pulse{0%,100%{transform:scale(.8);opacity:.5}50%{transform:scale(1.2);opacity:1}}
+
+    /* Light Matching */
+    .light-demo{padding:67px 22px 22px}
+    .stage{
+      position:relative;height:330px;border-radius:22px;overflow:hidden;border:1px solid rgba(255,255,255,.06);
+      background:radial-gradient(ellipse at center bottom,#15192a 0%,#080b13 43%,#030509 100%)
+    }
+    .truss{position:absolute;top:25px;left:10%;right:10%;height:4px;background:linear-gradient(90deg,transparent,#5d697f 7%,#5d697f 93%,transparent);opacity:.55}
+    .fixture{position:absolute;top:18px;width:26px;height:17px;border-radius:7px;background:#181e2c;border:1px solid rgba(255,255,255,.09)}
+    .fixture:after{content:"";position:absolute;left:9px;top:16px;width:8px;height:8px;border-radius:50%;background:#9aefff;box-shadow:0 0 16px #64ddff}
+    .beam{position:absolute;top:39px;width:190px;height:270px;clip-path:polygon(47% 0,53% 0,100% 100%,0 100%);filter:blur(2px);opacity:.36;transform-origin:50% 0;mix-blend-mode:screen}
+    .beam.cyan{background:linear-gradient(rgba(37,223,255,.88),transparent 80%)}
+    .beam.magenta{background:linear-gradient(rgba(225,81,255,.85),transparent 80%)}
+    .beam.violet{background:linear-gradient(rgba(131,93,255,.88),transparent 80%)}
+    .beam.one{left:-40px;animation:beamOne 2.4s ease-in-out infinite alternate}
+    .beam.two{left:25%;animation:beamTwo 2.1s ease-in-out infinite alternate}
+    .beam.three{right:4%;animation:beamThree 2.7s ease-in-out infinite alternate}
+    .floor-glow{position:absolute;left:12%;right:12%;bottom:18px;height:70px;border-radius:50%;background:radial-gradient(ellipse,rgba(88,105,255,.24),transparent 67%);animation:floorPulse .95s ease-in-out infinite alternate}
+    .match-panel{position:absolute;z-index:5;left:18px;right:18px;bottom:18px;display:grid;grid-template-columns:1.1fr repeat(3,.6fr);gap:8px}
+    .match-cell{padding:11px 12px;border-radius:13px;background:rgba(5,9,16,.78);border:1px solid rgba(255,255,255,.07);backdrop-filter:blur(10px)}
+    .match-cell strong{display:block;font-size:14px}
+    .match-cell span{font-size:7px;color:#718099;letter-spacing:.07em}
+    .score strong{font-size:19px;background:linear-gradient(90deg,#49e6b0,#7bdfff);-webkit-background-clip:text;background-clip:text;color:transparent}
+    .beat-ring{position:absolute;left:50%;top:48%;width:84px;height:84px;border-radius:50%;border:1px solid rgba(111,221,255,.35);transform:translate(-50%,-50%);box-shadow:0 0 45px rgba(83,135,255,.18);animation:beatRing .95s ease-out infinite}
+    .beat-core{position:absolute;left:50%;top:48%;width:16px;height:16px;border-radius:50%;background:#cbf7ff;transform:translate(-50%,-50%);box-shadow:0 0 30px #5ddfff}
+    @keyframes beamOne{from{transform:rotate(-17deg) scaleX(.72);opacity:.18}to{transform:rotate(14deg) scaleX(1.05);opacity:.45}}
+    @keyframes beamTwo{from{transform:rotate(12deg) scaleX(.8);opacity:.22}to{transform:rotate(-12deg) scaleX(1.1);opacity:.5}}
+    @keyframes beamThree{from{transform:rotate(15deg) scaleX(.7);opacity:.18}to{transform:rotate(-18deg) scaleX(1.05);opacity:.44}}
+    @keyframes floorPulse{to{transform:scale(1.12);opacity:.62}}
+    @keyframes beatRing{from{transform:translate(-50%,-50%) scale(.6);opacity:.8}to{transform:translate(-50%,-50%) scale(1.65);opacity:0}}
+
+    .note{margin-top:10px;color:#66758d;font-size:9px;text-align:center}
+    .cta{margin:15px 0 70px;padding:30px;border:1px solid rgba(82,125,255,.17);border-radius:26px;background:linear-gradient(120deg,rgba(37,223,255,.06),rgba(131,93,255,.08),rgba(225,81,255,.05));display:flex;justify-content:space-between;gap:22px;align-items:center}
+    .cta h3{margin:0 0 7px;font-size:25px}
+    .cta p{margin:0;color:#8996ab;font-size:12px}
+    .btn{display:inline-flex;align-items:center;justify-content:center;min-height:46px;padding:0 17px;border-radius:13px;text-decoration:none;font-size:12px;font-weight:900;background:linear-gradient(105deg,#168fff,#785bff 70%,#b952ff)}
+    footer{padding:34px 0 55px;border-top:1px solid rgba(255,255,255,.055);display:flex;justify-content:space-between;gap:15px;color:#667288;font-size:11px}
+    @media(max-width:780px){
+      .navlinks a:not(.active){display:none}
+      .hero{padding-top:40px}
+      .section-head{align-items:flex-start;flex-direction:column}
+      .booth-grid{grid-template-columns:1fr}
+      .metrics{grid-template-columns:repeat(3,1fr)}
+      .metric:nth-child(4),.metric:nth-child(5){display:none}
+      .stage{height:300px}
+      .match-panel{grid-template-columns:1fr 1fr}
+      .cta{align-items:flex-start;flex-direction:column}
+      footer{flex-direction:column}
+    }
+    @media(max-width:520px){
+      .wrap{width:min(100% - 22px,1120px)}
+      .demo-card{border-radius:22px}
+      .analyze-demo,.booth-demo,.light-demo{padding:63px 14px 14px}
+      .wave-shell{height:128px;padding:13px}
+      .monitor-meta{grid-template-columns:1fr 1fr 1fr}
+      .stage{height:325px}
+      .match-panel{left:10px;right:10px;bottom:10px}
+      .beam{width:145px}
+    }
+    @media(prefers-reduced-motion:reduce){
+      .wave span,.scan,.live-pill i,.signal span,.sweep,.beam,.floor-glow,.beat-ring{animation:none!important}
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <nav>
+      <a class="brand" href="/"><img src="/djtoolkit-icon.png" alt="DJ Toolkit"><span>DJ TOOLKIT</span></a>
+      <div class="navlinks">
+        <a href="/">Startseite</a>
+        <a class="active" href="/demos.html">Live Demos</a>
+        <a href="/faq.html">FAQ</a>
+        <a href="/?feedback=1">Feedback</a>
+      </div>
+    </nav>
+
+    <header class="hero">
+      <div class="eyebrow">DJ TOOLKIT · LIVE DEMOS</div>
+      <h1>Funktionen.<br><span class="grad">In Bewegung.</span></h1>
+      <p class="lead">Drei animierte Beispiele zeigen, wie Analyze, Booth Safety und Light Matching im DJ-Toolkit-Look wirken können.</p>
+      <div class="demo-nav">
+        <a href="#analyze">Analyze</a>
+        <a href="#booth-safety">Booth Safety</a>
+        <a href="#light-matching">Light Matching</a>
+      </div>
+    </header>
+
+    <main>
+      <section class="section" id="analyze">
+        <div class="section-head">
+          <div><small>01 · ANALYZE</small><h2>Live Wave Analysis</h2></div>
+          <p>Bewegte Waveform, Scan-Line und musikalische Live-Werte als Beispiel für die Analyze-Oberfläche.</p>
+        </div>
+        <div class="demo-card analyze-demo">
+          <div class="demo-label">ILLUSTRATIVE LIVE DEMO</div>
+          <div class="wave-shell">
+            <div class="wave" id="wave"></div>
+            <div class="scan"></div>
+          </div>
+          <div class="metrics">
+            <div class="metric"><b>126.0</b><span>BPM</span></div>
+            <div class="metric"><b style="color:#c187ff">8A</b><span>CAMELOT</span></div>
+            <div class="metric"><b>8.4</b><span>ENERGY</span></div>
+            <div class="metric"><b>16</b><span>BEATS TO PHRASE</span></div>
+            <div class="metric"><b style="color:#7be9ba">92%</b><span>MATCH FIT</span></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="booth-safety">
+        <div class="section-head">
+          <div><small>02 · BOOTH SAFETY</small><h2>Safety Monitor</h2></div>
+          <p>Ein animiertes Beispiel für Signalüberwachung, Silence Detection, Backup-Bereitschaft und Setup-Status.</p>
+        </div>
+        <div class="demo-card booth-demo">
+          <div class="demo-label">ILLUSTRATIVE LIVE DEMO</div>
+          <div class="sweep"></div>
+          <div class="booth-grid">
+            <div class="monitor">
+              <div class="monitor-head"><b>Booth Signal</b><span class="live-pill"><i></i> MONITORING</span></div>
+              <div class="signal" id="signal"></div>
+              <div class="monitor-meta">
+                <div><b>-8.2 dB</b><span>LEVEL</span></div>
+                <div><b style="color:#8be7ff">STABLE</b><span>SIGNAL</span></div>
+                <div><b style="color:#91efc1">0.0 s</b><span>SILENCE</span></div>
+              </div>
+            </div>
+            <div class="safety-stack">
+              <div class="safety-item"><div><b>Silence Detector</b><small>Audio path active</small></div><span class="status ok">OK</span></div>
+              <div class="safety-item"><div><b>Emergency Player</b><small>Standby ready</small></div><span class="status armed">ARMED</span></div>
+              <div class="safety-item"><div><b>Backup Playlist</b><small>Fallback prepared</small></div><span class="status backup">READY</span></div>
+              <div class="safety-item"><div><b>Setup Status</b><small>Booth checklist complete</small></div><span class="status ok">SAFE</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="note">Die Animation ist eine Produktdarstellung und keine echte Sicherheitsüberwachung dieser Website.</div>
+      </section>
+
+      <section class="section" id="light-matching">
+        <div class="section-head">
+          <div><small>03 · LIGHT MASTER</small><h2>Light Matching</h2></div>
+          <p>BPM, Energie, Phrase und Drop werden visuell in Lichtbewegung und eine passende Szene übersetzt.</p>
+        </div>
+        <div class="demo-card light-demo">
+          <div class="demo-label">ILLUSTRATIVE LIVE DEMO</div>
+          <div class="stage">
+            <div class="truss"></div>
+            <div class="fixture" style="left:18%"></div>
+            <div class="fixture" style="left:49%"></div>
+            <div class="fixture" style="right:18%"></div>
+
+            <div class="beam cyan one"></div>
+            <div class="beam magenta two"></div>
+            <div class="beam violet three"></div>
+
+            <div class="beat-ring"></div>
+            <div class="beat-core"></div>
+            <div class="floor-glow"></div>
+
+            <div class="match-panel">
+              <div class="match-cell score"><strong>94%</strong><span>LIGHT MATCH</span></div>
+              <div class="match-cell"><strong>126</strong><span>BPM</span></div>
+              <div class="match-cell"><strong>8.4</strong><span>ENERGY</span></div>
+              <div class="match-cell"><strong style="color:#d492ff">DROP</strong><span>SCENE</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="note">Light Matching ist hier als visuelles Konzept dargestellt; tatsächliche Lichtsteuerung hängt von der späteren Integration und dem angeschlossenen Setup ab.</div>
+      </section>
+
+      <section class="cta">
+        <div><h3>Mehr Musik. Bessere Nächte.</h3><p>Zurück zur Landingpage oder schick uns eine Idee für die nächste Demo.</p></div>
+        <div style="display:flex;gap:9px;flex-wrap:wrap">
+          <a class="btn" href="/">Zur Startseite</a>
+          <a class="btn" href="/?feedback=1">Feedback senden</a>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <span>© DJ Toolkit · dj-toolkit.com</span>
+      <span><a href="/" style="text-decoration:none">Startseite</a> · <a href="/faq.html" style="text-decoration:none">FAQ</a> · <a href="/?feedback=1" style="text-decoration:none">Feedback</a></span>
+    </footer>
+  </div>
+
+  <script>
+    const heights=[36,54,72,43,61,87,52,74,97,64,48,83,58,92,67,42,71,100,79,55,86,46,65,94,70,40,62,89,51,76,98,63,45,81,57,91,69,49,73,96];
+    const wave=document.getElementById('wave');
+    heights.forEach((h,i)=>{
+      const b=document.createElement('span');
+      b.style.height=h+'%';
+      b.style.setProperty('--s',(0.72+(i%7)*0.09).toFixed(2)+'s');
+      b.style.setProperty('--d',(-((i%9)*0.08)).toFixed(2)+'s');
+      wave.appendChild(b);
+    });
+
+    const signal=document.getElementById('signal');
+    const signalHeights=[28,44,66,52,73,86,48,68,92,59,78,41,70,88,53,76,95,61,80,46,74,90,57,82];
+    signalHeights.forEach((h,i)=>{
+      const b=document.createElement('span');
+      b.style.height=h+'%';
+      b.style.setProperty('--s',(0.82+(i%6)*0.11).toFixed(2)+'s');
+      b.style.setProperty('--d',(-((i%7)*0.09)).toFixed(2)+'s');
+      signal.appendChild(b);
+    });
+  </script>
+</body>
+</html>
