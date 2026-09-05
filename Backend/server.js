@@ -872,30 +872,199 @@ app.post("/api/feedback", async (req, res) => {
       </div>
     </div>`;
 
+  const feedbackExcerpt = message.length > 700
+    ? `${message.slice(0, 700).trim()}…`
+    : message;
+  const safeFeedbackExcerpt = escapeHTML(feedbackExcerpt).replace(/\n/g, "<br>");
+
   const thanksText = [
     name ? `Hallo ${name},` : "Hallo,",
     "",
-    "vielen Dank für dein Feedback zu DJ Toolkit.",
-    "Wir haben deine Nachricht erhalten und nehmen deine Rückmeldung in unsere Weiterentwicklung auf.",
+    "vielen Dank, dass du dir die Zeit genommen hast, uns dein Feedback zu DJ Toolkit zu schicken.",
+    "Deine Nachricht ist sicher bei unserem Team angekommen.",
+    "",
+    `Kategorie: ${category}`,
+    rating ? `Bewertung: ${rating}/5` : null,
+    "",
+    "Dein Feedback:",
+    feedbackExcerpt,
+    "",
+    "Was passiert jetzt?",
+    "• Unser Team prüft deine Rückmeldung.",
+    "• Gute Ideen und Verbesserungsvorschläge fließen in unsere Produktplanung ein.",
+    "• Falls wir Rückfragen haben, können wir dir direkt auf diese E-Mail antworten.",
+    "",
+    "Danke, dass du DJ Toolkit gemeinsam mit uns besser machst.",
     "",
     "Mehr Musik. Bessere Nächte.",
     "",
     "Dein DJ-Toolkit Team",
-    "info@dj-toolkit.com"
-  ].join("\n");
+    "info@dj-toolkit.com",
+    "https://dj-toolkit.com"
+  ].filter(Boolean).join("\n");
 
   const thanksHTML = `
-    <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#05070d;color:#f7f9ff;padding:32px">
-      <div style="max-width:620px;margin:auto;background:linear-gradient(145deg,#101827,#080d16);border:1px solid #29344a;border-radius:24px;padding:30px">
-        <div style="font-size:12px;letter-spacing:.16em;color:#5fddff;font-weight:900">DJ TOOLKIT</div>
-        <h1 style="font-size:28px;margin:10px 0 18px">Danke für dein Feedback.</h1>
-        <p style="line-height:1.7;color:#b9c4d8">${name ? `Hallo ${escapeHTML(name)},` : "Hallo,"}</p>
-        <p style="line-height:1.7;color:#b9c4d8">wir haben deine Nachricht erhalten. Vielen Dank, dass du dir die Zeit genommen hast, DJ Toolkit mit deinem Feedback besser zu machen.</p>
-        <p style="line-height:1.7;color:#b9c4d8">Deine Rückmeldung fließt in die Weiterentwicklung von DJ Toolkit ein.</p>
-        <div style="margin-top:24px;padding-top:20px;border-top:1px solid #273147;color:#7bdfff;font-weight:800">Mehr Musik. Bessere Nächte.</div>
-        <p style="color:#8996ad;margin-bottom:0">Dein DJ-Toolkit Team<br>info@dj-toolkit.com</p>
-      </div>
-    </div>`;
+  <!doctype html>
+  <html lang="de">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Danke für dein Feedback · DJ Toolkit</title>
+  </head>
+  <body style="margin:0;padding:0;background:#05070d;color:#f7f9ff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;">
+    <div style="display:none!important;visibility:hidden;opacity:0;color:transparent;height:0;width:0;overflow:hidden;">
+      Deine Nachricht ist bei unserem DJ-Toolkit Team angekommen.
+    </div>
+
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%;background:#05070d;margin:0;padding:0;">
+      <tr>
+        <td align="center" style="padding:36px 16px;">
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%;max-width:640px;background:#0b111d;border:1px solid #243049;border-radius:24px;overflow:hidden;">
+            <tr>
+              <td style="padding:0;background:#09101a;">
+                <div style="height:5px;background:linear-gradient(90deg,#16cfff 0%,#5b7cff 45%,#9b5dff 72%,#e14dff 100%);font-size:0;line-height:0;">&nbsp;</div>
+              </td>
+            </tr>
+
+            <tr>
+              <td style="padding:30px 32px 10px;">
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                  <tr>
+                    <td valign="middle">
+                      <table role="presentation" cellspacing="0" cellpadding="0" border="0">
+                        <tr>
+                          <td style="padding-right:12px;">
+                            <img src="https://dj-toolkit.com/djtoolkit-icon.png" width="48" height="48" alt="DJ Toolkit" style="display:block;border:0;border-radius:12px;width:48px;height:48px;">
+                          </td>
+                          <td valign="middle">
+                            <div style="font-size:17px;line-height:1.2;font-weight:900;letter-spacing:.04em;color:#ffffff;">DJ TOOLKIT</div>
+                            <div style="font-size:10px;line-height:1.4;font-weight:800;letter-spacing:.16em;color:#6edfff;margin-top:3px;">ANALYZE · MIX · PERFORM · TOGETHER</div>
+                          </td>
+                        </tr>
+                      </table>
+                    </td>
+                    <td align="right" valign="middle">
+                      <span style="display:inline-block;padding:8px 11px;border-radius:999px;background:#0b2b24;border:1px solid #1f5b49;color:#73e9b5;font-size:10px;font-weight:900;letter-spacing:.08em;">
+                        ✓ FEEDBACK ERHALTEN
+                      </span>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+
+            <tr>
+              <td style="padding:18px 32px 0;">
+                <div style="font-size:12px;line-height:1.4;color:#7a8ba7;font-weight:800;letter-spacing:.12em;">DANKE FÜR DEINE RÜCKMELDUNG</div>
+                <h1 style="margin:8px 0 14px;font-size:34px;line-height:1.08;letter-spacing:-.035em;color:#ffffff;">Du hilfst uns, DJ Toolkit besser zu machen.</h1>
+                <p style="margin:0 0 15px;font-size:16px;line-height:1.7;color:#c0cada;">
+                  ${name ? `Hallo ${escapeHTML(name)},` : "Hallo,"}
+                </p>
+                <p style="margin:0;font-size:15px;line-height:1.75;color:#aebbd0;">
+                  vielen Dank, dass du dir die Zeit genommen hast, uns deine Ideen, Anregungen oder Verbesserungsvorschläge mitzuteilen.
+                  Deine Nachricht ist <strong style="color:#ffffff;">sicher bei unserem DJ-Toolkit Team angekommen</strong>.
+                </p>
+              </td>
+            </tr>
+
+            <tr>
+              <td style="padding:24px 32px 0;">
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:#080d16;border:1px solid #202d43;border-radius:18px;">
+                  <tr>
+                    <td style="padding:20px;">
+                      <div style="font-size:10px;line-height:1.4;color:#6edfff;font-weight:900;letter-spacing:.13em;margin-bottom:13px;">DEIN FEEDBACK</div>
+
+                      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                        <tr>
+                          <td style="font-size:12px;color:#74839c;padding:0 12px 8px 0;">Kategorie</td>
+                          <td align="right" style="font-size:12px;font-weight:800;color:#eef3ff;padding:0 0 8px;">${safeCategory}</td>
+                        </tr>
+                        ${rating ? `
+                        <tr>
+                          <td style="font-size:12px;color:#74839c;padding:0 12px 12px 0;">Bewertung</td>
+                          <td align="right" style="font-size:12px;font-weight:800;color:#ffd76d;padding:0 0 12px;">${safeRating}</td>
+                        </tr>` : ""}
+                      </table>
+
+                      <div style="margin-top:10px;padding:15px 16px;border-radius:14px;background:#0d1522;border-left:3px solid #8c63ff;color:#c7d1e2;font-size:13px;line-height:1.65;">
+                        ${safeFeedbackExcerpt}
+                      </div>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+
+            <tr>
+              <td style="padding:24px 32px 0;">
+                <div style="font-size:10px;line-height:1.4;color:#8d9bb2;font-weight:900;letter-spacing:.13em;margin-bottom:12px;">WAS PASSIERT JETZT?</div>
+
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                  <tr>
+                    <td width="34" valign="top" style="padding:0 10px 14px 0;">
+                      <div style="width:30px;height:30px;line-height:30px;text-align:center;border-radius:10px;background:#0b2630;color:#62ddff;font-weight:900;">1</div>
+                    </td>
+                    <td valign="top" style="padding:3px 0 14px;color:#aebbd0;font-size:13px;line-height:1.55;">
+                      <strong style="color:#ffffff;">Wir lesen dein Feedback.</strong><br>
+                      Unser Team prüft jede Rückmeldung und ordnet sie dem passenden Produktbereich zu.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td width="34" valign="top" style="padding:0 10px 14px 0;">
+                      <div style="width:30px;height:30px;line-height:30px;text-align:center;border-radius:10px;background:#211633;color:#cf8cff;font-weight:900;">2</div>
+                    </td>
+                    <td valign="top" style="padding:3px 0 14px;color:#aebbd0;font-size:13px;line-height:1.55;">
+                      <strong style="color:#ffffff;">Ideen fließen in die Weiterentwicklung ein.</strong><br>
+                      Besonders hilfreiche Vorschläge berücksichtigen wir bei neuen Features und Verbesserungen.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td width="34" valign="top" style="padding:0 10px 0 0;">
+                      <div style="width:30px;height:30px;line-height:30px;text-align:center;border-radius:10px;background:#13261f;color:#7ae5b4;font-weight:900;">3</div>
+                    </td>
+                    <td valign="top" style="padding:3px 0 0;color:#aebbd0;font-size:13px;line-height:1.55;">
+                      <strong style="color:#ffffff;">Wir melden uns bei Bedarf.</strong><br>
+                      Falls wir eine Rückfrage haben, können wir dich über deine angegebene E-Mail-Adresse erreichen.
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+
+            <tr>
+              <td align="center" style="padding:28px 32px 4px;">
+                <a href="https://dj-toolkit.com" style="display:inline-block;text-decoration:none;background:#347fff;color:#ffffff;border-radius:14px;padding:14px 22px;font-size:13px;font-weight:900;">
+                  Zurück zu DJ Toolkit →
+                </a>
+              </td>
+            </tr>
+
+            <tr>
+              <td style="padding:25px 32px 30px;">
+                <div style="border-top:1px solid #202a3d;padding-top:21px;text-align:center;">
+                  <div style="font-size:15px;line-height:1.5;font-weight:900;color:#72ddff;">Mehr Musik. Bessere Nächte.</div>
+                  <div style="margin-top:8px;font-size:11px;line-height:1.65;color:#74839b;">
+                    Dein DJ-Toolkit Team<br>
+                    <a href="mailto:info@dj-toolkit.com" style="color:#9ba9bf;text-decoration:none;">info@dj-toolkit.com</a>
+                    &nbsp;·&nbsp;
+                    <a href="https://dj-toolkit.com" style="color:#9ba9bf;text-decoration:none;">dj-toolkit.com</a>
+                  </div>
+                  <div style="margin-top:14px;font-size:9px;line-height:1.5;color:#536077;">
+                    Diese Nachricht wurde automatisch versendet, weil über dj-toolkit.com Feedback mit dieser E-Mail-Adresse eingereicht wurde.
+                  </div>
+                </div>
+              </td>
+            </tr>
+          </table>
+
+          <div style="max-width:640px;margin:14px auto 0;text-align:center;color:#465168;font-size:9px;line-height:1.5;">
+            DJ Toolkit · For DJs. By DJs.
+          </div>
+        </td>
+      </tr>
+    </table>
+  </body>
+  </html>`;
 
   try {
     const results = await Promise.allSettled([
@@ -911,7 +1080,7 @@ app.post("/api/feedback", async (req, res) => {
         from,
         to: [email],
         reply_to: feedbackTo,
-        subject: "Danke für dein Feedback · DJ Toolkit",
+        subject: "Danke, dass du DJ Toolkit besser machst",
         text: thanksText,
         html: thanksHTML
       })
@@ -944,7 +1113,7 @@ app.get("/health", (_, res) => {
   res.set("Cache-Control", "no-store");
   res.json({
     ok: true,
-    version: "10.4",
+    version: "10.5.2",
     onlineAnalysis: true,
     catalogPreviewAudio: true,
     djMetadata: true,
