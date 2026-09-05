@@ -60,6 +60,7 @@ function defaultEventState(eventID) {
     mustPlay: [],
     doNotPlay: [],
     preferredGenres: [],
+    musicDirection: "openFormat",
     timeline: [],
     genreVotes: {},
     genreVoterHashes: {},
@@ -92,6 +93,92 @@ function arrayOfStrings(value, maxItems = 80, maxLength = 180) {
     .slice(0, maxItems)
     .map(item => String(item || "").trim().slice(0, maxLength))
     .filter(Boolean);
+}
+
+
+const OPEN_FORMAT_GENRES = ["House", "Tech House", "EDM", "Techno", "90s", "2000s", "Pop", "Hip-Hop"];
+const EVENT_MUSIC_DIRECTIONS = new Set(["openFormat", "house", "techHouse", "techno"]);
+
+function cleanMusicDirection(value) {
+  const raw = String(value || "").trim();
+  return EVENT_MUSIC_DIRECTIONS.has(raw) ? raw : "openFormat";
+}
+
+function musicDirectionLabel(value) {
+  switch (cleanMusicDirection(value)) {
+    case "house": return "House";
+    case "techHouse": return "Tech House";
+    case "techno": return "Techno";
+    default: return "Open Format";
+  }
+}
+
+function allowedGenreOptionsForState(state) {
+  const direction = cleanMusicDirection(state?.musicDirection);
+  if (direction === "house") return ["House"];
+  if (direction === "techHouse") return ["Tech House"];
+  if (direction === "techno") return ["Techno"];
+
+  const preferred = arrayOfStrings(state?.preferredGenres, 20, 80);
+  return [...new Set([...preferred, ...OPEN_FORMAT_GENRES])].slice(0, 20);
+}
+
+function normalizeGenreLabel(value) {
+  return String(value || "")
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/&/g, " and ")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+function classifyGenreForDirection(directionValue, catalogGenreValue) {
+  const direction = cleanMusicDirection(directionValue);
+  if (direction === "openFormat") return "matching";
+
+  const genre = normalizeGenreLabel(catalogGenreValue);
+  if (!genre) return "unknown";
+
+  const isTechHouse = genre.includes("tech house") || genre.includes("techhouse");
+  const isTechno = genre.includes("techno");
+  const isHouse = genre.includes("house") && !isTechHouse;
+
+  if (direction === "house") {
+    if (isHouse) return "matching";
+    if (isTechHouse || isTechno) return "outside";
+  }
+  if (direction === "techHouse") {
+    if (isTechHouse) return "matching";
+    if (isHouse || isTechno) return "outside";
+  }
+  if (direction === "techno") {
+    if (isTechno) return "matching";
+    if (isHouse || isTechHouse) return "outside";
+  }
+
+  // If the catalog clearly identifies another mainstream style, mark it as
+  // outside the configured event format. Unknown/very broad metadata remains
+  // allowed because catalog genre tags are not reliable enough for hard blocks.
+  const clearlyOther = [
+    "pop", "hip hop", "hiphop", "rap", "rock", "metal", "country", "r b",
+    "rnb", "schlager", "jazz", "reggae", "latin", "classical", "folk",
+    "indie", "alternative", "disco", "funk", "soul", "drum and bass",
+    "drum bass", "dnb", "hardstyle", "trance"
+  ].some(token => genre.includes(token));
+
+  return clearlyOther ? "outside" : "unknown";
+}
+
+function requestFormatMeta(state, catalogGenre) {
+  const musicDirection = cleanMusicDirection(state?.musicDirection);
+  const formatCompatibility = classifyGenreForDirection(musicDirection, catalogGenre);
+  const formatLabel = musicDirectionLabel(musicDirection);
+  const formatWarning = formatCompatibility === "outside"
+    ? `Dieser Track liegt außerhalb des Eventformats ${formatLabel}. Der DJ entscheidet.`
+    : null;
+
+  return { musicDirection, formatCompatibility, formatLabel, formatWarning };
 }
 
 function cleanTimeline(value) {
@@ -568,13 +655,15 @@ app.get("/health", (_, res) => {
   res.set("Cache-Control", "no-store");
   res.json({
     ok: true,
-    version: "10.0",
+    version: "10.2",
     onlineAnalysis: true,
     catalogPreviewAudio: true,
     djMetadata: true,
     requestVoting: true,
     duplicateConsolidation: true,
     guestGenreVoting: true,
+    eventMusicDirection: true,
+    eventFormatRequestScoring: true,
     clientPortal: true,
     requestETA: true,
     multiDJHandover: true,
@@ -677,7 +766,10 @@ app.get("/api/requests/:requestID/public", (req, res) => {
     voteCount: Math.max(1, Number(row.voteCount || 1)),
     duplicateCount: Math.max(1, Number(row.duplicateCount || 1)),
     estimatedMinutes: Number.isFinite(Number(row.estimatedMinutes)) ? Number(row.estimatedMinutes) : null,
-    publicStatusMessage: row.publicStatusMessage || null
+    publicStatusMessage: row.publicStatusMessage || null,
+    eventMusicDirection: row.eventMusicDirection || null,
+    formatCompatibility: row.formatCompatibility || null,
+    formatWarning: row.formatWarning || null
   });
 });
 
@@ -701,6 +793,10 @@ app.post("/api/events/:eventID/requests", (req, res) => {
     return res.status(400).json({ error: "Der Wunsch wurde vom Spam-Schutz blockiert." });
   }
 
+  const eventState = getEventState(req.params.eventID);
+  const requestGenre = String(req.body.catalogGenre || "").trim().slice(0, 100) || null;
+  const formatMeta = requestFormatMeta(eventState, requestGenre);
+
   const rows = readStore();
   const requestKey = normalizeRequestKey(artist, title);
   const existingIndex = rows.findIndex(row =>
@@ -716,6 +812,12 @@ app.post("/api/events/:eventID/requests", (req, res) => {
     existing.duplicateCount = Math.max(1, Number(existing.duplicateCount || 1)) + 1;
     existing.voteCount = Math.max(1, Number(existing.voteCount || 1)) + 1;
     existing.lastRequestAt = new Date().toISOString();
+    existing.eventMusicDirection = formatMeta.musicDirection;
+    existing.formatCompatibility = formatMeta.formatCompatibility;
+    existing.formatWarning = formatMeta.formatWarning;
+    if (formatMeta.formatCompatibility === "outside") {
+      existing.publicStatusMessage = `Außerhalb ${formatMeta.formatLabel} · DJ entscheidet`;
+    }
     existing.supporters = Array.isArray(existing.supporters) ? existing.supporters.slice(-49) : [];
     existing.supporters.push({
       guestName: String(req.body.guestName || "").trim().slice(0, 80) || null,
@@ -756,9 +858,14 @@ app.post("/api/events/:eventID/requests", (req, res) => {
     requestStoreURL: cleanURL(req.body.catalogStoreURL),
     requestPreviewURL: cleanURL(req.body.catalogPreviewURL),
     requestAlbum: String(req.body.catalogAlbum || "").trim().slice(0, 180) || null,
-    requestGenre: String(req.body.catalogGenre || "").trim().slice(0, 100) || null,
+    requestGenre,
+    eventMusicDirection: formatMeta.musicDirection,
+    formatCompatibility: formatMeta.formatCompatibility,
+    formatWarning: formatMeta.formatWarning,
     estimatedMinutes: null,
-    publicStatusMessage: "In der DJ Queue"
+    publicStatusMessage: formatMeta.formatCompatibility === "outside"
+      ? `Außerhalb ${formatMeta.formatLabel} · DJ entscheidet`
+      : "In der DJ Queue"
   };
 
   rows.push(row); writeStore(rows);
@@ -898,7 +1005,11 @@ app.patch("/api/requests/:requestID", (req, res) => {
 // PRO SUITE: public event DNA / guest genre voting.
 app.get("/api/events/:eventID/guest-state", (req, res) => {
   const state = getEventState(req.params.eventID);
+  const musicDirection = cleanMusicDirection(state.musicDirection);
+  const genreOptions = allowedGenreOptionsForState(state);
+  const allowed = new Set(genreOptions.map(normalizeGenreLabel));
   const genreVotes = Object.entries(state.genreVotes || {})
+    .filter(([genre]) => musicDirection === "openFormat" || allowed.has(normalizeGenreLabel(genre)))
     .map(([genre, votes]) => ({ genre, votes: Math.max(0, Number(votes || 0)) }))
     .sort((a, b) => b.votes - a.votes);
 
@@ -911,8 +1022,65 @@ app.get("/api/events/:eventID/guest-state", (req, res) => {
   res.json({
     eventName: state.eventName || null,
     preferredGenres: arrayOfStrings(state.preferredGenres, 20, 80),
+    musicDirection,
+    musicDirectionLabel: musicDirectionLabel(musicDirection),
+    genreOptions,
     genreVotes,
     upcoming
+  });
+});
+
+app.get("/api/events/:eventID/music-direction", (req, res) => {
+  const state = getEventState(req.params.eventID);
+  const musicDirection = cleanMusicDirection(state.musicDirection);
+  res.json({
+    eventID: req.params.eventID,
+    eventName: state.eventName || null,
+    musicDirection,
+    musicDirectionLabel: musicDirectionLabel(musicDirection),
+    genreOptions: allowedGenreOptionsForState(state)
+  });
+});
+
+app.put("/api/events/:eventID/music-direction", (req, res) => {
+  const state = getEventState(req.params.eventID);
+  const musicDirection = cleanMusicDirection(req.body.musicDirection);
+  const genreOptions = musicDirection === "openFormat"
+    ? allowedGenreOptionsForState({ ...state, musicDirection })
+    : allowedGenreOptionsForState({ ...state, musicDirection });
+  const allowed = new Set(genreOptions.map(normalizeGenreLabel));
+
+  // When a DJ changes a formerly open event to a fixed format, obsolete crowd
+  // votes are removed so the app/GuestWeb never shows contradictory results.
+  const genreVotes = {};
+  for (const [genre, votes] of Object.entries(state.genreVotes || {})) {
+    if (musicDirection === "openFormat" || allowed.has(normalizeGenreLabel(genre))) {
+      genreVotes[genre] = Math.max(0, Number(votes || 0));
+    }
+  }
+
+  const genreVoterHashes = {};
+  for (const [hash, genre] of Object.entries(state.genreVoterHashes || {})) {
+    if (musicDirection === "openFormat" || allowed.has(normalizeGenreLabel(genre))) {
+      genreVoterHashes[hash] = genre;
+    }
+  }
+
+  const next = saveEventState(req.params.eventID, {
+    ...state,
+    eventName: String(req.body.eventName || state.eventName || "").trim().slice(0, 120) || null,
+    musicDirection,
+    genreVotes,
+    genreVoterHashes
+  });
+
+  res.json({
+    ok: true,
+    eventID: req.params.eventID,
+    eventName: next.eventName || null,
+    musicDirection,
+    musicDirectionLabel: musicDirectionLabel(musicDirection),
+    genreOptions
   });
 });
 
@@ -924,6 +1092,20 @@ app.post("/api/events/:eventID/genre-vote", (req, res) => {
   }
 
   const state = getEventState(req.params.eventID);
+  const musicDirection = cleanMusicDirection(state.musicDirection);
+  const allowedGenres = allowedGenreOptionsForState(state);
+  const allowedGenre = allowedGenres.find(item =>
+    normalizeGenreLabel(item) === normalizeGenreLabel(genre)
+  );
+  if (!allowedGenre) {
+    return res.status(400).json({
+      error: `Dieses Genre ist für das Eventformat ${musicDirectionLabel(musicDirection)} nicht freigegeben.`,
+      musicDirection,
+      genreOptions: allowedGenres
+    });
+  }
+
+  const normalizedGenre = allowedGenre;
   const hash = hashVoterToken(token);
   const voterMap = state.genreVoterHashes && typeof state.genreVoterHashes === "object"
     ? state.genreVoterHashes : {};
@@ -931,21 +1113,21 @@ app.post("/api/events/:eventID/genre-vote", (req, res) => {
     ? state.genreVotes : {};
 
   const previous = voterMap[hash];
-  if (previous === genre) {
-    return res.json({ ok: true, alreadyVoted: true, genre, votes: Math.max(0, Number(genreVotes[genre] || 0)) });
+  if (previous === normalizedGenre) {
+    return res.json({ ok: true, alreadyVoted: true, genre: normalizedGenre, votes: Math.max(0, Number(genreVotes[normalizedGenre] || 0)) });
   }
   if (previous && genreVotes[previous]) {
     genreVotes[previous] = Math.max(0, Number(genreVotes[previous]) - 1);
   }
-  genreVotes[genre] = Math.max(0, Number(genreVotes[genre] || 0)) + 1;
-  voterMap[hash] = genre;
+  genreVotes[normalizedGenre] = Math.max(0, Number(genreVotes[normalizedGenre] || 0)) + 1;
+  voterMap[hash] = normalizedGenre;
 
   saveEventState(req.params.eventID, {
     ...state,
     genreVotes,
     genreVoterHashes: voterMap
   });
-  res.json({ ok: true, alreadyVoted: false, genre, votes: genreVotes[genre] });
+  res.json({ ok: true, alreadyVoted: false, genre: normalizedGenre, votes: genreVotes[normalizedGenre] });
 });
 
 // Create/recover a capability URL that an event client can use to configure
