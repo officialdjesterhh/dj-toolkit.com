@@ -72,8 +72,17 @@
     .analyze-demo{padding:68px 24px 24px}
     .wave-shell{height:170px;border-radius:20px;border:1px solid rgba(255,255,255,.06);background:#050a12;position:relative;overflow:hidden;padding:20px}
     .wave-shell:before{content:"";position:absolute;inset:0;background:linear-gradient(rgba(255,255,255,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.025) 1px,transparent 1px);background-size:30px 30px}
-    .wave{position:relative;z-index:2;height:100%;display:flex;align-items:center;gap:4px}
-    .wave span{flex:1;min-width:3px;max-width:11px;border-radius:999px;background:linear-gradient(180deg,var(--cyan),#6f7cff 53%,var(--magenta));transform-origin:center;animation:waveMove var(--s,1s) ease-in-out var(--d,0s) infinite alternate}
+    .wave{
+      position:relative;z-index:2;height:100%;width:100%;
+      display:flex;align-items:center;gap:3px;overflow:hidden
+    }
+    .wave span{
+      flex:1 1 0;min-width:0;max-width:none;
+      border-radius:999px;
+      background:linear-gradient(180deg,var(--cyan),#6f7cff 53%,var(--magenta));
+      transform-origin:center;
+      animation:waveMove var(--s,1s) ease-in-out var(--d,0s) infinite alternate
+    }
     .scan{position:absolute;z-index:3;top:12px;bottom:12px;width:2px;left:-2%;background:linear-gradient(transparent,#b3f4ff,transparent);box-shadow:0 0 22px rgba(85,225,255,.8);animation:scanMove 3.2s linear infinite}
     .metrics{display:grid;grid-template-columns:repeat(5,1fr);gap:9px;margin-top:11px}
     .metric{padding:12px;border:1px solid rgba(255,255,255,.055);border-radius:14px;background:rgba(255,255,255,.025)}
@@ -141,6 +150,138 @@
     @keyframes floorPulse{to{transform:scale(1.12);opacity:.62}}
     @keyframes beatRing{from{transform:translate(-50%,-50%) scale(.6);opacity:.8}to{transform:translate(-50%,-50%) scale(1.65);opacity:0}}
 
+
+    /* Smart Matching */
+    .smart-demo{padding:67px 22px 22px}
+    .match-lab{display:grid;grid-template-columns:1fr 140px 1fr;gap:14px;align-items:stretch}
+    .track-card{
+      position:relative;overflow:hidden;padding:18px;border:1px solid rgba(255,255,255,.06);
+      border-radius:20px;background:rgba(3,8,14,.64)
+    }
+    .track-card:before{
+      content:"";position:absolute;inset:0;pointer-events:none;
+      background:linear-gradient(110deg,transparent 20%,rgba(37,223,255,.07) 45%,transparent 70%);
+      transform:translateX(-120%);animation:trackScan 3.6s linear infinite
+    }
+    .track-top{display:flex;justify-content:space-between;gap:12px;align-items:start}
+    .art{
+      width:54px;height:54px;border-radius:14px;display:grid;place-items:center;font-size:22px;font-weight:900;
+      background:linear-gradient(145deg,rgba(37,223,255,.24),rgba(131,93,255,.28),rgba(225,81,255,.22));
+      border:1px solid rgba(255,255,255,.09)
+    }
+    .track-name{flex:1;min-width:0}
+    .track-name small{display:block;color:#738198;font-size:7px;letter-spacing:.08em;margin-bottom:4px}
+    .track-name b{display:block;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .track-tags{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:14px}
+    .track-tags span{padding:9px 7px;border-radius:11px;background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.05);font-size:8px;color:#93a0b5;text-align:center}
+    .track-tags strong{display:block;color:#fff;font-size:11px;margin-bottom:2px}
+    .match-core{display:grid;place-items:center;position:relative}
+    .score-orbit{
+      width:112px;height:112px;border-radius:50%;display:grid;place-items:center;position:relative;
+      border:1px solid rgba(98,223,255,.22);box-shadow:0 0 55px rgba(60,119,255,.13);
+      animation:orbitPulse 1.8s ease-in-out infinite
+    }
+    .score-orbit:before,.score-orbit:after{content:"";position:absolute;border-radius:50%;border:1px dashed rgba(164,102,255,.25)}
+    .score-orbit:before{inset:9px;animation:spin 7s linear infinite}
+    .score-orbit:after{inset:20px;animation:spin 5s linear infinite reverse}
+    .score-orbit b{font-size:27px;background:linear-gradient(90deg,#54e8b5,#7adfff,#bf83ff);-webkit-background-clip:text;background-clip:text;color:transparent}
+    .score-orbit span{display:block;font-size:6px;letter-spacing:.12em;color:#77869e;text-align:center}
+    .match-flow{position:absolute;left:0;right:0;top:50%;height:2px;background:linear-gradient(90deg,transparent,#43dfff,transparent);opacity:.45}
+    .match-dot{position:absolute;top:calc(50% - 4px);left:0;width:8px;height:8px;border-radius:50%;background:#bff7ff;box-shadow:0 0 18px #48dfff;animation:dotFlow 2.2s ease-in-out infinite}
+    @keyframes trackScan{to{transform:translateX(120%)}}
+    @keyframes orbitPulse{0%,100%{transform:scale(.94)}50%{transform:scale(1.03)}}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    @keyframes dotFlow{0%{left:5%;opacity:0}15%{opacity:1}85%{opacity:1}100%{left:92%;opacity:0}}
+
+    /* Crowd / Requests */
+    .crowd-demo{padding:67px 22px 22px}
+    .crowd-grid{display:grid;grid-template-columns:1.05fr .95fr;gap:14px}
+    .request-panel,.vote-panel{padding:16px;border:1px solid rgba(255,255,255,.06);border-radius:20px;background:rgba(3,8,14,.64)}
+    .panel-title{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+    .panel-title b{font-size:13px}
+    .panel-title span{font-size:7px;color:#718097}
+    .request-list{display:grid;gap:8px}
+    .request-row{display:flex;align-items:center;gap:10px;padding:10px;border-radius:13px;background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.05);animation:reqGlow 3s ease-in-out infinite}
+    .request-row:nth-child(2){animation-delay:.6s}.request-row:nth-child(3){animation-delay:1.2s}
+    .request-index{width:28px;height:28px;border-radius:9px;display:grid;place-items:center;background:rgba(49,145,255,.12);color:#8ce8ff;font-size:9px;font-weight:900}
+    .request-copy{flex:1;min-width:0}.request-copy b{display:block;font-size:10px}.request-copy span{font-size:7px;color:#718097}
+    .vote-count{font-size:9px;color:#9feec9;font-weight:900}
+    .genre-bars{display:grid;gap:11px}
+    .genre-line{display:grid;grid-template-columns:78px 1fr 28px;gap:8px;align-items:center}
+    .genre-line span{font-size:8px;color:#95a1b5}.genre-line b{font-size:8px;text-align:right}
+    .bar-bg{height:9px;border-radius:999px;background:rgba(255,255,255,.05);overflow:hidden}
+    .bar-fill{height:100%;border-radius:inherit;background:linear-gradient(90deg,#2adfff,#6a7cff,#c15cff);transform-origin:left;animation:voteGrow 2.4s ease-in-out infinite alternate}
+    @keyframes reqGlow{0%,100%{border-color:rgba(255,255,255,.05);transform:translateX(0)}50%{border-color:rgba(73,208,255,.18);transform:translateX(3px)}}
+    @keyframes voteGrow{from{transform:scaleX(.72)}to{transform:scaleX(1)}}
+
+    /* Event Center */
+    .event-demo{padding:67px 22px 22px}
+    .event-board{display:grid;grid-template-columns:.95fr 1.05fr;gap:14px}
+    .event-card-big,.timeline-panel{padding:17px;border-radius:20px;border:1px solid rgba(255,255,255,.06);background:rgba(3,8,14,.64)}
+    .event-cover{height:112px;border-radius:16px;position:relative;overflow:hidden;background:linear-gradient(135deg,rgba(37,223,255,.16),rgba(102,83,255,.2),rgba(225,81,255,.15))}
+    .event-cover:after{content:"";position:absolute;width:130px;height:130px;border:1px solid rgba(255,255,255,.13);border-radius:50%;right:-35px;top:-42px;animation:eventOrbit 5s linear infinite}
+    .event-status{position:absolute;left:12px;top:12px;padding:6px 8px;border-radius:999px;background:rgba(70,231,165,.09);border:1px solid rgba(70,231,165,.18);color:#9befc4;font-size:7px;font-weight:900}
+    .event-info{margin-top:13px}.event-info b{font-size:15px}.event-info p{margin:5px 0 0;color:#78869d;font-size:8px}
+    .qr-mini{position:absolute;right:13px;bottom:13px;width:44px;height:44px;border-radius:10px;background:
+      linear-gradient(90deg,#fff 8%,transparent 8% 18%,#fff 18% 28%,transparent 28% 39%,#fff 39% 48%,transparent 48% 61%,#fff 61% 72%,transparent 72% 82%,#fff 82%),
+      linear-gradient(#fff 10%,transparent 10% 22%,#fff 22% 33%,transparent 33% 46%,#fff 46% 58%,transparent 58% 70%,#fff 70% 81%,transparent 81%);
+      background-color:#111;box-shadow:0 0 22px rgba(99,220,255,.18);animation:qrPulse 1.8s ease-in-out infinite
+    }
+    .timeline{display:grid;gap:0}
+    .step{display:grid;grid-template-columns:28px 1fr;gap:10px;min-height:54px;position:relative}
+    .step:not(:last-child):before{content:"";position:absolute;left:13px;top:24px;bottom:-7px;width:2px;background:rgba(255,255,255,.07)}
+    .step-dot{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:#0c1623;border:1px solid rgba(255,255,255,.08);font-size:8px;color:#6f7d94;z-index:1}
+    .step.active .step-dot{background:rgba(37,223,255,.12);color:#9aeeff;border-color:rgba(37,223,255,.28);box-shadow:0 0 20px rgba(37,223,255,.14);animation:pulse 1.4s ease-in-out infinite}
+    .step-copy b{display:block;font-size:10px;margin-top:2px}.step-copy span{font-size:7px;color:#708097}
+    @keyframes eventOrbit{to{transform:rotate(360deg)}} @keyframes qrPulse{50%{transform:scale(1.07);box-shadow:0 0 30px rgba(99,220,255,.35)}}
+
+    /* DJ Handover */
+    .handover-demo{padding:67px 22px 22px}
+    .handover-stage{display:grid;grid-template-columns:1fr 180px 1fr;gap:15px;align-items:center}
+    .dj-node{padding:18px;border-radius:20px;border:1px solid rgba(255,255,255,.06);background:rgba(3,8,14,.64)}
+    .dj-head{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+    .avatar{width:42px;height:42px;border-radius:13px;display:grid;place-items:center;background:linear-gradient(145deg,rgba(37,223,255,.18),rgba(131,93,255,.22));font-size:17px}
+    .dj-head b{display:block;font-size:12px}.dj-head span{font-size:7px;color:#718097}
+    .handover-data{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+    .handover-data div{padding:9px;border-radius:11px;background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.05)}
+    .handover-data b{display:block;font-size:10px}.handover-data span{font-size:6px;color:#6f7d94}
+    .transfer{position:relative;height:100px;display:grid;place-items:center}
+    .transfer-line{position:absolute;left:0;right:0;height:2px;background:linear-gradient(90deg,rgba(37,223,255,.2),#5bdfff,#a46cff,rgba(225,81,255,.2))}
+    .packet{position:absolute;width:10px;height:10px;border-radius:50%;background:#dcfaff;box-shadow:0 0 18px #61ddff;left:0;animation:handoverPacket 2.6s ease-in-out infinite}
+    .packet.two{animation-delay:.85s}.packet.three{animation-delay:1.7s}
+    .handover-label{padding:8px 10px;border-radius:999px;background:rgba(93,105,255,.09);border:1px solid rgba(123,104,255,.19);font-size:7px;color:#c5baff;font-weight:900;z-index:2}
+    @keyframes handoverPacket{0%{left:3%;opacity:0}12%{opacity:1}88%{opacity:1}100%{left:94%;opacity:0}}
+
+    /* Auto Set Planner */
+    .planner-demo{padding:67px 22px 22px}
+    .planner{position:relative;display:grid;gap:9px;padding:16px;border-radius:20px;border:1px solid rgba(255,255,255,.06);background:rgba(3,8,14,.64);overflow:hidden}
+    .planner-row{display:grid;grid-template-columns:32px 1fr 78px 62px;align-items:center;gap:10px;padding:11px;border-radius:13px;border:1px solid rgba(255,255,255,.05);background:rgba(255,255,255,.025);animation:plannerShift 5s ease-in-out infinite}
+    .planner-row:nth-child(2){animation-delay:.3s}.planner-row:nth-child(3){animation-delay:.6s}.planner-row:nth-child(4){animation-delay:.9s}
+    .order{width:28px;height:28px;border-radius:9px;display:grid;place-items:center;background:rgba(131,93,255,.11);color:#c8b5ff;font-size:9px;font-weight:900}
+    .planner-track b{display:block;font-size:10px}.planner-track span{font-size:7px;color:#718097}
+    .planner-chip{font-size:7px;color:#93a0b5;text-align:center;padding:7px;border-radius:9px;background:rgba(255,255,255,.035)}
+    .planner-score{font-size:9px;color:#8cefc1;text-align:right;font-weight:900}
+    .planner-scan{position:absolute;left:0;right:0;top:-20%;height:70px;background:linear-gradient(transparent,rgba(37,223,255,.055),transparent);animation:plannerScan 4.8s linear infinite;pointer-events:none}
+    @keyframes plannerShift{0%,100%{transform:translateY(0)}50%{transform:translateY(-2px);border-color:rgba(77,211,255,.14)}} @keyframes plannerScan{to{top:110%}}
+
+    /* Transition Coach */
+    .coach-demo{padding:67px 22px 22px}
+    .coach{position:relative;padding:17px;border-radius:20px;border:1px solid rgba(255,255,255,.06);background:rgba(3,8,14,.64)}
+    .coach-lanes{display:grid;gap:12px}
+    .lane{height:58px;border-radius:14px;background:#061019;border:1px solid rgba(255,255,255,.05);position:relative;overflow:hidden}
+    .lane-wave{position:absolute;inset:0;display:flex;align-items:center;gap:3px;padding:9px}
+    .lane-wave span{flex:1;border-radius:999px;background:linear-gradient(180deg,#28dbff,#786cff);animation:coachWave var(--s,1s) ease-in-out var(--d,0s) infinite alternate}
+    .lane.b .lane-wave span{background:linear-gradient(180deg,#b55fff,#ef65d8)}
+    .mix-line{position:absolute;z-index:4;top:8px;bottom:8px;left:68%;width:2px;background:#c7f9ff;box-shadow:0 0 18px #50dfff}
+    .mix-line:after{content:"MIX";position:absolute;top:-2px;left:7px;font-size:6px;color:#94ebff;font-weight:900;letter-spacing:.08em}
+    .coach-bottom{display:grid;grid-template-columns:1fr 100px 1fr;gap:9px;margin-top:10px}
+    .coach-box{padding:11px;border-radius:12px;border:1px solid rgba(255,255,255,.05);background:rgba(255,255,255,.025);text-align:center}
+    .coach-box b{display:block;font-size:11px}.coach-box span{font-size:6px;color:#718097}
+    .countdown b{font-size:21px;color:#95edff}
+    .risk b{color:#8ff0bf}
+    .cue-flash{position:absolute;inset:0;pointer-events:none;border-radius:20px;border:1px solid transparent;animation:cueFlash 3.8s ease-in-out infinite}
+    @keyframes coachWave{from{transform:scaleY(.35)}to{transform:scaleY(1)}} @keyframes cueFlash{0%,86%,100%{border-color:transparent;box-shadow:none}92%{border-color:rgba(80,225,255,.28);box-shadow:inset 0 0 45px rgba(63,140,255,.08)}}
+
     .note{margin-top:10px;color:#66758d;font-size:9px;text-align:center}
     .cta{margin:15px 0 70px;padding:30px;border:1px solid rgba(82,125,255,.17);border-radius:26px;background:linear-gradient(120deg,rgba(37,223,255,.06),rgba(131,93,255,.08),rgba(225,81,255,.05));display:flex;justify-content:space-between;gap:22px;align-items:center}
     .cta h3{margin:0 0 7px;font-size:25px}
@@ -152,6 +293,14 @@
       .hero{padding-top:40px}
       .section-head{align-items:flex-start;flex-direction:column}
       .booth-grid{grid-template-columns:1fr}
+      .match-lab{grid-template-columns:1fr}
+      .match-core{min-height:130px}
+      .crowd-grid,.event-board{grid-template-columns:1fr}
+      .handover-stage{grid-template-columns:1fr}
+      .transfer{height:76px;transform:rotate(90deg);max-width:130px;margin:auto;width:130px}
+      .planner-row{grid-template-columns:30px 1fr 58px}
+      .planner-row .planner-chip{display:none}
+      .coach-bottom{grid-template-columns:1fr 86px 1fr}
       .metrics{grid-template-columns:repeat(3,1fr)}
       .metric:nth-child(4),.metric:nth-child(5){display:none}
       .stage{height:300px}
@@ -170,7 +319,7 @@
       .beam{width:145px}
     }
     @media(prefers-reduced-motion:reduce){
-      .wave span,.scan,.live-pill i,.signal span,.sweep,.beam,.floor-glow,.beat-ring{animation:none!important}
+      .wave span,.scan,.live-pill i,.signal span,.sweep,.beam,.floor-glow,.beat-ring,.track-card:before,.score-orbit,.score-orbit:before,.score-orbit:after,.match-dot,.request-row,.bar-fill,.event-cover:after,.qr-mini,.step.active .step-dot,.packet,.planner-row,.planner-scan,.lane-wave span,.cue-flash{animation:none!important}
     }
   </style>
 </head>
@@ -189,11 +338,17 @@
     <header class="hero">
       <div class="eyebrow">DJ TOOLKIT · LIVE DEMOS</div>
       <h1>Funktionen.<br><span class="grad">In Bewegung.</span></h1>
-      <p class="lead">Drei animierte Beispiele zeigen, wie Analyze, Booth Safety und Light Matching im DJ-Toolkit-Look wirken können.</p>
+      <p class="lead">Neun animierte Beispiele zeigen, wie DJ Toolkit Analyse, Mixing, Crowd, Events, Safety, Licht und DJ-Workflow visuell zusammenführt.</p>
       <div class="demo-nav">
         <a href="#analyze">Analyze</a>
         <a href="#booth-safety">Booth Safety</a>
         <a href="#light-matching">Light Matching</a>
+        <a href="#smart-matching">Smart Matching</a>
+        <a href="#crowd">Crowd</a>
+        <a href="#event-center">Event Center</a>
+        <a href="#handover">DJ Handover</a>
+        <a href="#set-planner">Set Planner</a>
+        <a href="#transition-coach">Transition Coach</a>
       </div>
     </header>
 
@@ -280,8 +435,166 @@
         <div class="note">Light Matching ist hier als visuelles Konzept dargestellt; tatsächliche Lichtsteuerung hängt von der späteren Integration und dem angeschlossenen Setup ab.</div>
       </section>
 
+
+      <section class="section" id="smart-matching">
+        <div class="section-head">
+          <div><small>04 · SMART MATCHING</small><h2>Track-to-Track Match</h2></div>
+          <p>BPM, Key, Camelot, Energy und Event-Kontext werden als animierter Match-Score zwischen zwei Tracks dargestellt.</p>
+        </div>
+        <div class="demo-card smart-demo">
+          <div class="demo-label">ILLUSTRATIVE LIVE DEMO</div>
+          <div class="match-lab">
+            <div class="track-card">
+              <div class="track-top">
+                <div class="art">A</div>
+                <div class="track-name"><small>NOW PLAYING</small><b>Neon Current</b></div>
+              </div>
+              <div class="track-tags">
+                <span><strong>126</strong>BPM</span><span><strong>8A</strong>CAMELOT</span><span><strong>8.2</strong>ENERGY</span>
+              </div>
+            </div>
+
+            <div class="match-core">
+              <div class="match-flow"></div><div class="match-dot"></div>
+              <div class="score-orbit"><div><b>94%</b><span>SMART MATCH</span></div></div>
+            </div>
+
+            <div class="track-card">
+              <div class="track-top">
+                <div class="art">B</div>
+                <div class="track-name"><small>NEXT CANDIDATE</small><b>Afterglow Drive</b></div>
+              </div>
+              <div class="track-tags">
+                <span><strong>126</strong>BPM</span><span><strong>8A</strong>CAMELOT</span><span><strong>8.7</strong>ENERGY</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="crowd">
+        <div class="section-head">
+          <div><small>05 · REQUESTS & CROWD</small><h2>Live Crowd Pulse</h2></div>
+          <p>Musikwünsche und Genre Voting bewegen sich live mit der Crowd und geben dem DJ zusätzliche Orientierung.</p>
+        </div>
+        <div class="demo-card crowd-demo">
+          <div class="demo-label">ILLUSTRATIVE LIVE DEMO</div>
+          <div class="crowd-grid">
+            <div class="request-panel">
+              <div class="panel-title"><b>Top Requests</b><span>LIVE</span></div>
+              <div class="request-list">
+                <div class="request-row"><div class="request-index">01</div><div class="request-copy"><b>Midnight Motion</b><span>House · passt zum Event</span></div><div class="vote-count">+24</div></div>
+                <div class="request-row"><div class="request-index">02</div><div class="request-copy"><b>Ocean Lights</b><span>Dance · Crowd Pick</span></div><div class="vote-count">+18</div></div>
+                <div class="request-row"><div class="request-index">03</div><div class="request-copy"><b>City Heat</b><span>Tech House · Must Play</span></div><div class="vote-count">+13</div></div>
+              </div>
+            </div>
+            <div class="vote-panel">
+              <div class="panel-title"><b>Genre Voting</b><span>76 VOTES</span></div>
+              <div class="genre-bars">
+                <div class="genre-line"><span>House</span><div class="bar-bg"><div class="bar-fill" style="width:88%"></div></div><b>38%</b></div>
+                <div class="genre-line"><span>Tech House</span><div class="bar-bg"><div class="bar-fill" style="width:72%;animation-delay:.3s"></div></div><b>31%</b></div>
+                <div class="genre-line"><span>Dance</span><div class="bar-bg"><div class="bar-fill" style="width:48%;animation-delay:.6s"></div></div><b>19%</b></div>
+                <div class="genre-line"><span>Pop</span><div class="bar-bg"><div class="bar-fill" style="width:31%;animation-delay:.9s"></div></div><b>12%</b></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="event-center">
+        <div class="section-head">
+          <div><small>06 · EVENT CENTER</small><h2>Event Workflow</h2></div>
+          <p>Von Vorbereitung über QR und Live-Phase bis zum Report – ein Event läuft als klarer Workflow durch DJ Toolkit.</p>
+        </div>
+        <div class="demo-card event-demo">
+          <div class="demo-label">ILLUSTRATIVE LIVE DEMO</div>
+          <div class="event-board">
+            <div class="event-card-big">
+              <div class="event-cover">
+                <div class="event-status">● LIVE EVENT</div>
+                <div class="qr-mini" aria-hidden="true"></div>
+              </div>
+              <div class="event-info"><b>Club Night · Hamburg</b><p>Music Direction: Open Format · 186 Gäste verbunden</p></div>
+            </div>
+            <div class="timeline-panel">
+              <div class="panel-title"><b>Event Timeline</b><span>AUTO SYNC</span></div>
+              <div class="timeline">
+                <div class="step"><div class="step-dot">✓</div><div class="step-copy"><b>Pre-Gig Briefing</b><span>Setup und Musikwünsche vorbereitet</span></div></div>
+                <div class="step active"><div class="step-dot">●</div><div class="step-copy"><b>Live Performance</b><span>Requests, Voting und Booth Safety aktiv</span></div></div>
+                <div class="step"><div class="step-dot">3</div><div class="step-copy"><b>Smart Last Song</b><span>Set-End Calculator vorbereitet</span></div></div>
+                <div class="step"><div class="step-dot">4</div><div class="step-copy"><b>Gig Report</b><span>Post-Gig Analyse und Set-Vergleich</span></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="handover">
+        <div class="section-head">
+          <div><small>07 · MULTI-DJ</small><h2>DJ Handover</h2></div>
+          <p>Set-Kontext, letzter Track, Energie und nächste Empfehlungen werden visuell an den nächsten DJ übergeben.</p>
+        </div>
+        <div class="demo-card handover-demo">
+          <div class="demo-label">ILLUSTRATIVE LIVE DEMO</div>
+          <div class="handover-stage">
+            <div class="dj-node">
+              <div class="dj-head"><div class="avatar">A</div><div><b>DJ A</b><span>CURRENT SET</span></div></div>
+              <div class="handover-data"><div><b>126 BPM</b><span>LAST TRACK</span></div><div><b>8.6</b><span>ENERGY</span></div><div><b>8A</b><span>KEY</span></div><div><b>House</b><span>DIRECTION</span></div></div>
+            </div>
+            <div class="transfer">
+              <div class="transfer-line"></div><div class="packet"></div><div class="packet two"></div><div class="packet three"></div>
+              <div class="handover-label">HANDOVER SYNC</div>
+            </div>
+            <div class="dj-node">
+              <div class="dj-head"><div class="avatar">B</div><div><b>DJ B</b><span>READY TO TAKE OVER</span></div></div>
+              <div class="handover-data"><div><b>94%</b><span>CONTEXT SYNC</span></div><div><b>3 Tracks</b><span>NEXT PICKS</span></div><div><b>Stable</b><span>ENERGY ARC</span></div><div><b>Ready</b><span>BOOTH</span></div></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="set-planner">
+        <div class="section-head">
+          <div><small>08 · AUTO SET PLANNER</small><h2>Smart Set Flow</h2></div>
+          <p>Tracks werden nach Mix Fit, Energie und Verlauf als dynamische Reihenfolge für das Set vorgeschlagen.</p>
+        </div>
+        <div class="demo-card planner-demo">
+          <div class="demo-label">ILLUSTRATIVE LIVE DEMO</div>
+          <div class="planner">
+            <div class="planner-scan"></div>
+            <div class="planner-row"><div class="order">01</div><div class="planner-track"><b>Warm Entry</b><span>Opening · House</span></div><div class="planner-chip">Energy 6.8</div><div class="planner-score">96%</div></div>
+            <div class="planner-row"><div class="order">02</div><div class="planner-track"><b>Neon Current</b><span>Build · House</span></div><div class="planner-chip">Energy 7.6</div><div class="planner-score">94%</div></div>
+            <div class="planner-row"><div class="order">03</div><div class="planner-track"><b>City Heat</b><span>Peak · Tech House</span></div><div class="planner-chip">Energy 8.8</div><div class="planner-score">92%</div></div>
+            <div class="planner-row"><div class="order">04</div><div class="planner-track"><b>Afterglow Drive</b><span>Release · House</span></div><div class="planner-chip">Energy 8.2</div><div class="planner-score">91%</div></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="transition-coach">
+        <div class="section-head">
+          <div><small>09 · DJ COPILOT</small><h2>Transition Coach</h2></div>
+          <p>Phrase Countdown, Mix-Punkt und Übergangsrisiko werden als bewegtes Timing-Fenster zwischen zwei Tracks dargestellt.</p>
+        </div>
+        <div class="demo-card coach-demo">
+          <div class="demo-label">ILLUSTRATIVE LIVE DEMO</div>
+          <div class="coach">
+            <div class="cue-flash"></div>
+            <div class="mix-line"></div>
+            <div class="coach-lanes">
+              <div class="lane a"><div class="lane-wave" id="coachA"></div></div>
+              <div class="lane b"><div class="lane-wave" id="coachB"></div></div>
+            </div>
+            <div class="coach-bottom">
+              <div class="coach-box"><b>Phrase aligned</b><span>BEST MIX POINT</span></div>
+              <div class="coach-box countdown"><b id="phraseCountdown">16</b><span>BEATS</span></div>
+              <div class="coach-box risk"><b>LOW</b><span>TRANSITION RISK</span></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <section class="cta">
-        <div><h3>Mehr Musik. Bessere Nächte.</h3><p>Zurück zur Landingpage oder schick uns eine Idee für die nächste Demo.</p></div>
+        <div><h3>Mehr Musik. Bessere Nächte.</h3><p>Neun animierte Funktionen sind jetzt als Beispiele sichtbar. Schick uns gern eine Idee für die nächste Demo.</p></div>
         <div style="display:flex;gap:9px;flex-wrap:wrap">
           <a class="btn" href="/">Zur Startseite</a>
           <a class="btn" href="/?feedback=1">Feedback senden</a>
@@ -296,7 +609,13 @@
   </div>
 
   <script>
-    const heights=[36,54,72,43,61,87,52,74,97,64,48,83,58,92,67,42,71,100,79,55,86,46,65,94,70,40,62,89,51,76,98,63,45,81,57,91,69,49,73,96];
+    const heights=[
+      36,54,72,43,61,87,52,74,97,64,48,83,58,92,67,42,
+      71,100,79,55,86,46,65,94,70,40,62,89,51,76,98,63,
+      45,81,57,91,69,49,73,96,58,84,44,77,93,60,88,53,
+      75,99,68,47,82,56,90,64,41,72,95,59,85,50,78,92,
+      66,43,80,55,97,62,74,89,48,83,57,91,70,45,76,94
+    ];
     const wave=document.getElementById('wave');
     heights.forEach((h,i)=>{
       const b=document.createElement('span');
@@ -315,6 +634,33 @@
       b.style.setProperty('--d',(-((i%7)*0.09)).toFixed(2)+'s');
       signal.appendChild(b);
     });
+
+    const coachHeightsA=[40,62,78,50,85,66,92,58,73,96,64,48,82,70,88,55,75,94,61,80,46,72,90,57,84,68,98,60,76,87];
+    const coachHeightsB=[62,48,81,70,92,55,76,88,60,97,68,52,84,73,91,58,79,95,63,86,50,74,89,61,83,69,93,56,77,90];
+
+    function buildCoachWave(id,heights,offset){
+      const el=document.getElementById(id);
+      if(!el)return;
+      heights.forEach((h,i)=>{
+        const b=document.createElement('span');
+        b.style.height=h+'%';
+        b.style.setProperty('--s',(0.74+((i+offset)%6)*0.10).toFixed(2)+'s');
+        b.style.setProperty('--d',(-(((i+offset)%8)*0.07)).toFixed(2)+'s');
+        el.appendChild(b);
+      });
+    }
+    buildCoachWave('coachA',coachHeightsA,0);
+    buildCoachWave('coachB',coachHeightsB,3);
+
+    const phraseCountdown=document.getElementById('phraseCountdown');
+    const phraseSteps=[16,8,4,2,1];
+    let phraseIndex=0;
+    if(phraseCountdown){
+      setInterval(()=>{
+        phraseIndex=(phraseIndex+1)%phraseSteps.length;
+        phraseCountdown.textContent=phraseSteps[phraseIndex];
+      },950);
+    }
   </script>
 </body>
 </html>
