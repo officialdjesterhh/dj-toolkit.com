@@ -87,8 +87,45 @@
     .wide{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.stat{padding:17px;border:1px solid var(--line);background:rgba(255,255,255,.028);border-radius:18px}.stat b{display:block;font-size:14px}.stat span{font-size:10px;color:#76839a}
     .cta{margin:68px 0;padding:34px;border:1px solid rgba(91,113,255,.18);background:linear-gradient(120deg,rgba(33,215,255,.065),rgba(122,87,255,.08),rgba(221,77,255,.055));border-radius:30px;display:flex;justify-content:space-between;gap:25px;align-items:center}.cta h3{font-size:30px;margin:0 0 7px;letter-spacing:-.04em}.cta p{margin:0;color:#8995ab;font-size:13px}
     footer{padding:35px 0 56px;border-top:1px solid rgba(255,255,255,.055);display:flex;justify-content:space-between;gap:16px;color:#667288;font-size:11px}
+
+    .feedback-fab{
+      position:fixed;right:22px;bottom:22px;z-index:50;border:1px solid rgba(255,255,255,.12);
+      background:linear-gradient(105deg,#118fff,#765bff 68%,#d84fff);color:#fff;border-radius:999px;
+      min-height:52px;padding:0 18px;display:flex;align-items:center;gap:9px;font:800 13px/1 inherit;
+      box-shadow:0 16px 54px rgba(74,70,255,.34);cursor:pointer
+    }
+    .feedback-fab:hover{transform:translateY(-1px)}
+    .feedback-modal{position:fixed;inset:0;z-index:80;display:none;place-items:center;padding:18px;background:rgba(1,3,7,.74);backdrop-filter:blur(18px)}
+    .feedback-modal.open{display:grid}
+    .feedback-dialog{width:min(620px,100%);max-height:min(90vh,760px);overflow:auto;border:1px solid rgba(255,255,255,.11);border-radius:26px;background:linear-gradient(155deg,#111a2a,#080d16 65%);box-shadow:0 36px 120px rgba(0,0,0,.62);padding:25px}
+    .feedback-top{display:flex;justify-content:space-between;gap:18px;align-items:flex-start}
+    .feedback-top small{font-size:10px;letter-spacing:.16em;color:var(--cyan);font-weight:900}
+    .feedback-top h3{font-size:29px;margin:7px 0 7px;letter-spacing:-.04em}
+    .feedback-top p{margin:0;color:var(--muted);font-size:13px;line-height:1.55}
+    .feedback-close{width:38px;height:38px;border-radius:12px;border:1px solid var(--line);background:rgba(255,255,255,.04);color:#dbe5f7;font-size:20px;cursor:pointer}
+    .feedback-form{display:grid;gap:12px;margin-top:22px}
+    .feedback-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .feedback-field{display:grid;gap:6px}
+    .feedback-field label{font-size:10px;font-weight:800;color:#92a0b8;letter-spacing:.06em}
+    .feedback-field input,.feedback-field select,.feedback-field textarea{
+      width:100%;border:1px solid rgba(255,255,255,.09);border-radius:13px;background:#070c15;color:#f7f9ff;
+      padding:13px 14px;font:500 13px inherit;outline:none
+    }
+    .feedback-field input:focus,.feedback-field select:focus,.feedback-field textarea:focus{border-color:rgba(69,191,255,.55);box-shadow:0 0 0 3px rgba(32,173,255,.08)}
+    .feedback-field textarea{min-height:135px;resize:vertical;line-height:1.55}
+    .feedback-stars{display:flex;gap:7px}
+    .feedback-star{width:38px;height:38px;border:1px solid var(--line);background:#080d16;border-radius:11px;color:#66758e;cursor:pointer;font-size:20px}
+    .feedback-star.active{color:#ffd76d;border-color:rgba(255,215,109,.35);background:rgba(255,215,109,.08)}
+    .feedback-submit{min-height:50px;border:0;border-radius:14px;background:linear-gradient(105deg,#168fff,#785bff 68%,#b952ff);color:#fff;font:850 14px inherit;cursor:pointer}
+    .feedback-submit:disabled{opacity:.55;cursor:wait}
+    .feedback-status{display:none;padding:12px 13px;border-radius:13px;font-size:12px;line-height:1.5}
+    .feedback-status.show{display:block}
+    .feedback-status.ok{background:rgba(64,228,156,.08);border:1px solid rgba(64,228,156,.25);color:#8df0ba}
+    .feedback-status.error{background:rgba(255,103,131,.08);border:1px solid rgba(255,103,131,.25);color:#ff9bab}
+    .feedback-privacy{font-size:10px;color:#68758c;line-height:1.5}
+    .feedback-hp{position:absolute!important;left:-9999px!important;width:1px!important;height:1px!important;opacity:0!important}
     @media(max-width:900px){.navlinks{display:none}.hero{grid-template-columns:1fr;padding-top:42px}.cards{grid-template-columns:1fr 1fr}.showcase{grid-template-columns:1fr}.wide{grid-template-columns:1fr 1fr}}
-    @media(max-width:580px){.wrap{width:min(100% - 24px,1180px)}h1{font-size:54px}.cards{grid-template-columns:1fr}.metrics{grid-template-columns:1fr 1fr}.cta{align-items:flex-start;flex-direction:column}.wide{grid-template-columns:1fr 1fr}}
+    @media(max-width:580px){.wrap{width:min(100% - 24px,1180px)}h1{font-size:54px}.cards{grid-template-columns:1fr}.metrics{grid-template-columns:1fr 1fr}.cta{align-items:flex-start;flex-direction:column}.wide{grid-template-columns:1fr 1fr}.feedback-grid{grid-template-columns:1fr}.feedback-fab{right:14px;bottom:14px}.feedback-dialog{padding:20px;border-radius:22px}}
   </style>
 </head>
 <body>
@@ -96,7 +133,7 @@
   <nav>
     <div class="brand"><img src="/djtoolkit-icon.png" alt="DJ Toolkit"><span>DJ TOOLKIT</span></div>
     <div class="navlinks">
-      <a href="#features">Funktionen</a><a href="#events">Events</a><a href="#workflow">Workflow OS</a><a href="/request.html?event=demo&name=DJ%20Toolkit%20Demo">GuestWeb</a>
+      <a href="#features">Funktionen</a><a href="#events">Events</a><a href="#workflow">Workflow OS</a><a href="/request.html?event=demo&name=DJ%20Toolkit%20Demo">GuestWeb</a><a href="#" id="navFeedback">Feedback</a>
     </div>
     <div class="pill"><span class="dot"></span> V28 · COMPLETE DJ OS</div>
   </nav>
@@ -203,10 +240,157 @@
 
   <footer><span>© DJ Toolkit · dj-toolkit.com</span><span>Analyze · Mix · Perform · Together</span></footer>
 </div>
+
+<button class="feedback-fab" id="feedbackButton" type="button" aria-haspopup="dialog" aria-controls="feedbackModal">
+  <span>♡</span><span>Feedback</span>
+</button>
+
+<div class="feedback-modal" id="feedbackModal" role="dialog" aria-modal="true" aria-labelledby="feedbackTitle">
+  <div class="feedback-dialog">
+    <div class="feedback-top">
+      <div>
+        <small>DEINE IDEE ZÄHLT</small>
+        <h3 id="feedbackTitle">Feedback an DJ Toolkit</h3>
+        <p>Was gefällt dir? Was fehlt? Was können wir besser machen?</p>
+      </div>
+      <button class="feedback-close" id="feedbackClose" type="button" aria-label="Feedback schließen">×</button>
+    </div>
+
+    <form id="feedbackForm" class="feedback-form">
+      <input class="feedback-hp" type="text" name="website" tabindex="-1" autocomplete="off">
+
+      <div class="feedback-grid">
+        <div class="feedback-field">
+          <label for="feedbackName">NAME · OPTIONAL</label>
+          <input id="feedbackName" name="name" maxlength="100" autocomplete="name" placeholder="Dein Name">
+        </div>
+        <div class="feedback-field">
+          <label for="feedbackEmail">E-MAIL *</label>
+          <input id="feedbackEmail" name="email" type="email" maxlength="254" autocomplete="email" required placeholder="name@example.com">
+        </div>
+      </div>
+
+      <div class="feedback-grid">
+        <div class="feedback-field">
+          <label for="feedbackPhone">MOBILNUMMER · OPTIONAL</label>
+          <input id="feedbackPhone" name="phone" type="tel" maxlength="40" autocomplete="tel" placeholder="+49 …">
+        </div>
+        <div class="feedback-field">
+          <label for="feedbackCategory">KATEGORIE</label>
+          <select id="feedbackCategory" name="category">
+            <option>Idee / Funktionswunsch</option>
+            <option>App Feedback</option>
+            <option>GuestWeb / Requests</option>
+            <option>Analyze / DJ Copilot</option>
+            <option>Fehler melden</option>
+            <option>Allgemeines Feedback</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="feedback-field">
+        <label>BEWERTUNG · OPTIONAL</label>
+        <div class="feedback-stars" id="feedbackStars" aria-label="Bewertung von 1 bis 5">
+          <button class="feedback-star" type="button" data-rating="1" aria-label="1 Stern">★</button>
+          <button class="feedback-star" type="button" data-rating="2" aria-label="2 Sterne">★</button>
+          <button class="feedback-star" type="button" data-rating="3" aria-label="3 Sterne">★</button>
+          <button class="feedback-star" type="button" data-rating="4" aria-label="4 Sterne">★</button>
+          <button class="feedback-star" type="button" data-rating="5" aria-label="5 Sterne">★</button>
+        </div>
+      </div>
+
+      <div class="feedback-field">
+        <label for="feedbackMessage">DEIN FEEDBACK *</label>
+        <textarea id="feedbackMessage" name="message" maxlength="5000" required placeholder="Schreib uns, was du dir für DJ Toolkit wünschst …"></textarea>
+      </div>
+
+      <div class="feedback-privacy">Mit dem Absenden werden deine Angaben ausschließlich zur Bearbeitung deines Feedbacks per E-Mail an das DJ-Toolkit Team übermittelt. Die Mobilnummer ist freiwillig.</div>
+      <div id="feedbackStatus" class="feedback-status" role="status" aria-live="polite"></div>
+      <button id="feedbackSubmit" class="feedback-submit" type="submit">Feedback senden ↗</button>
+    </form>
+  </div>
+</div>
+
 <script>
 const wave=document.getElementById('wave');
 const h=[18,31,47,68,88,58,37,76,96,64,43,82,72,49,34,61,89,75,45,57,92,100,73,46,67,94,77,44,61,83,56,32,50,78,90,63,38,69,86,54,29,48,73,59,40,65,88,71];
 h.forEach((v,i)=>{const b=document.createElement('span');b.className='bar';b.style.height=v+'%';b.style.opacity=(.52+i/h.length*.44).toFixed(2);wave.appendChild(b)});
+
+const feedbackModal=document.getElementById('feedbackModal');
+const feedbackButton=document.getElementById('feedbackButton');
+const navFeedback=document.getElementById('navFeedback');
+const feedbackClose=document.getElementById('feedbackClose');
+const feedbackForm=document.getElementById('feedbackForm');
+const feedbackSubmit=document.getElementById('feedbackSubmit');
+const feedbackStatus=document.getElementById('feedbackStatus');
+const feedbackStars=[...document.querySelectorAll('.feedback-star')];
+let feedbackRating=null;
+
+function openFeedback(event){
+  if(event) event.preventDefault();
+  feedbackModal.classList.add('open');
+  document.body.style.overflow='hidden';
+  setTimeout(()=>document.getElementById('feedbackEmail')?.focus(),60);
+}
+function closeFeedback(){
+  feedbackModal.classList.remove('open');
+  document.body.style.overflow='';
+}
+feedbackButton.addEventListener('click',openFeedback);
+navFeedback?.addEventListener('click',openFeedback);
+feedbackClose.addEventListener('click',closeFeedback);
+feedbackModal.addEventListener('click',event=>{if(event.target===feedbackModal)closeFeedback()});
+document.addEventListener('keydown',event=>{if(event.key==='Escape'&&feedbackModal.classList.contains('open'))closeFeedback()});
+
+feedbackStars.forEach(button=>{
+  button.addEventListener('click',()=>{
+    feedbackRating=Number(button.dataset.rating);
+    feedbackStars.forEach(star=>star.classList.toggle('active',Number(star.dataset.rating)<=feedbackRating));
+  });
+});
+
+feedbackForm.addEventListener('submit',async event=>{
+  event.preventDefault();
+  feedbackStatus.className='feedback-status';
+  feedbackStatus.textContent='';
+  feedbackSubmit.disabled=true;
+  feedbackSubmit.textContent='Wird gesendet …';
+
+  const data=new FormData(feedbackForm);
+  const payload={
+    name:String(data.get('name')||'').trim(),
+    email:String(data.get('email')||'').trim(),
+    phone:String(data.get('phone')||'').trim(),
+    category:String(data.get('category')||'Allgemeines Feedback').trim(),
+    message:String(data.get('message')||'').trim(),
+    website:String(data.get('website')||'').trim(),
+    rating:feedbackRating
+  };
+
+  try{
+    const response=await fetch('/api/feedback',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(payload)
+    });
+    const body=await response.json().catch(()=>({}));
+    if(!response.ok) throw new Error(body.error||'Feedback konnte nicht gesendet werden.');
+
+    feedbackStatus.className='feedback-status show ok';
+    feedbackStatus.textContent=body.confirmationSent===false
+      ? 'Danke! Dein Feedback wurde an das DJ-Toolkit Team gesendet.'
+      : 'Danke! Dein Feedback wurde gesendet. Eine Bestätigung ist unterwegs zu deiner E-Mail-Adresse.';
+    feedbackForm.reset();
+    feedbackRating=null;
+    feedbackStars.forEach(star=>star.classList.remove('active'));
+  }catch(error){
+    feedbackStatus.className='feedback-status show error';
+    feedbackStatus.textContent=error.message||'Feedback konnte nicht gesendet werden.';
+  }finally{
+    feedbackSubmit.disabled=false;
+    feedbackSubmit.textContent='Feedback senden ↗';
+  }
+});
 </script>
 </body>
 </html>

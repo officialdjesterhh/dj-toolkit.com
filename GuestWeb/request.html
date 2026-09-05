@@ -1067,7 +1067,7 @@
       const summary = await response.json();
 
       const count = Number(summary.requestCount || 0);
-      requestCount.textContent = count === 0 ? "Noch keine Wünsche" : `${count} Wunsch${count === 1 ? "" : "e"}`;
+      requestCount.textContent = count === 0 ? "Noch keine Wünsche" : (count === 1 ? "1 Wunsch" : `${count} Wünsche`);
 
       const top = Array.isArray(summary.topRequests) ? summary.topRequests.slice(0, 5) : [];
       if (!top.length) return;
