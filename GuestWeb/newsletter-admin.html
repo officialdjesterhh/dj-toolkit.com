@@ -1,0 +1,680 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#05070d">
+  <meta name="robots" content="noindex,nofollow,noarchive">
+  <title>Newsletter Verwaltung · DJ Toolkit</title>
+  <link rel="icon" href="/djtoolkit-icon.png">
+  <style>
+    :root{
+      color-scheme:dark;
+      --bg:#04060b;--panel:#0a111d;--panel2:#0e1726;--line:rgba(255,255,255,.08);
+      --text:#f7f9ff;--muted:#8f9cb1;--cyan:#27ddff;--blue:#347fff;--violet:#825eff;
+      --magenta:#df50ff;--green:#48e7a6;--amber:#ffd16d;--red:#ff6f7c;
+      font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text",Inter,system-ui,sans-serif
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;min-height:100%;background:var(--bg);color:var(--text)}
+    body{
+      background:
+        radial-gradient(circle at 8% -5%,rgba(39,221,255,.14),transparent 30rem),
+        radial-gradient(circle at 95% 2%,rgba(223,80,255,.13),transparent 32rem),
+        linear-gradient(180deg,#07101b 0%,#04060b 55%,#030509 100%);
+      overflow-x:hidden
+    }
+    body:before{
+      content:"";position:fixed;inset:0;pointer-events:none;opacity:.10;
+      background-image:linear-gradient(rgba(255,255,255,.026) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.026) 1px,transparent 1px);
+      background-size:40px 40px;mask-image:linear-gradient(#000,transparent 78%)
+    }
+    button,input,textarea,select{font:inherit}
+    button{cursor:pointer}
+    a{color:inherit}
+    .wrap{width:min(1240px,calc(100% - 34px));margin:auto}
+    nav{height:82px;display:flex;align-items:center;justify-content:space-between;gap:18px}
+    .brand{display:flex;align-items:center;gap:12px;text-decoration:none;font-weight:900;letter-spacing:.05em}
+    .brand img{width:44px;height:44px;border-radius:13px;box-shadow:0 0 30px rgba(52,127,255,.28)}
+    .nav-actions{display:flex;gap:9px;align-items:center}
+    .nav-btn{min-height:42px;padding:0 13px;border-radius:12px;border:1px solid var(--line);background:rgba(255,255,255,.035);color:#aeb9cb;font-size:11px;font-weight:850}
+    .danger{color:#ff9ca6}
+    .hero{padding:44px 0 30px}
+    .eyebrow{font-size:9px;letter-spacing:.17em;color:#75e4ff;font-weight:900}
+    h1{font-size:clamp(42px,6vw,72px);line-height:.96;letter-spacing:-.058em;margin:10px 0 14px}
+    .grad{background:linear-gradient(98deg,var(--cyan),#698cff 45%,#a366ff 70%,var(--magenta));-webkit-background-clip:text;background-clip:text;color:transparent}
+    .lead{max-width:760px;color:#98a5b8;font-size:15px;line-height:1.65}
+    .hidden{display:none!important}
+
+    /* login */
+    .login-shell{min-height:calc(100vh - 82px);display:grid;place-items:center;padding:30px 0 80px}
+    .login-card{width:min(540px,100%);padding:30px;border:1px solid rgba(255,255,255,.09);border-radius:28px;background:linear-gradient(145deg,rgba(15,24,40,.96),rgba(7,11,19,.97));box-shadow:0 35px 110px rgba(0,0,0,.42)}
+    .login-card small{color:#6de1ff;font-size:9px;font-weight:900;letter-spacing:.15em}
+    .login-card h1{font-size:38px;margin:9px 0 10px}
+    .login-card p{color:#8996ab;line-height:1.6;font-size:13px}
+    .secret-field{display:flex;gap:8px;margin-top:20px}
+    .secret-field input{flex:1;min-width:0;height:50px;border-radius:14px;border:1px solid var(--line);background:#060b13;color:#fff;padding:0 14px;outline:none}
+    .secret-field input:focus{border-color:rgba(46,201,255,.32);box-shadow:0 0 0 3px rgba(37,183,255,.06)}
+    .primary{border:0;color:#fff;background:linear-gradient(105deg,#168fff,#785bff 68%,#b952ff);font-weight:900;border-radius:14px;padding:0 18px;min-height:48px}
+    .login-note{margin-top:12px;color:#647188;font-size:9px;line-height:1.5}
+    .error-text{margin-top:12px;color:#ff8d99;font-size:11px;font-weight:700}
+
+    /* dashboard */
+    .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px}
+    .stat{padding:18px;border-radius:18px;border:1px solid var(--line);background:rgba(11,17,29,.82)}
+    .stat span{font-size:8px;color:#718099;letter-spacing:.12em;font-weight:900}
+    .stat b{display:block;font-size:28px;margin-top:6px}
+    .stat em{display:block;font-style:normal;font-size:8px;color:#67758c;margin-top:4px}
+    .dashboard-grid{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(360px,.75fr);gap:14px}
+    .panel{border:1px solid var(--line);border-radius:24px;background:linear-gradient(145deg,rgba(14,23,39,.92),rgba(6,10,18,.94));overflow:hidden}
+    .panel-head{padding:19px 20px;border-bottom:1px solid rgba(255,255,255,.055);display:flex;align-items:center;justify-content:space-between;gap:12px}
+    .panel-head small{display:block;font-size:7px;color:#6bdfff;letter-spacing:.14em;font-weight:900;margin-bottom:4px}
+    .panel-head h2{font-size:18px;margin:0}
+    .panel-body{padding:20px}
+    .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:11px}
+    .field{display:grid;gap:6px}
+    .field.full{grid-column:1/-1}
+    .field label{font-size:8px;color:#7a889f;font-weight:900;letter-spacing:.1em}
+    .field input,.field textarea,.field select{
+      width:100%;border:1px solid rgba(255,255,255,.075);background:#060b13;color:#f7f9ff;border-radius:13px;padding:12px 13px;outline:none
+    }
+    .field input,.field select{height:45px}
+    .field textarea{resize:vertical;min-height:112px;line-height:1.55}
+    .field input:focus,.field textarea:focus,.field select:focus{border-color:rgba(54,202,255,.30);box-shadow:0 0 0 3px rgba(37,183,255,.05)}
+    .char{font-size:7px;color:#58667e;text-align:right;margin-top:-2px}
+    .composer-actions{display:flex;flex-wrap:wrap;gap:9px;margin-top:15px}
+    .secondary{min-height:44px;border-radius:13px;border:1px solid var(--line);background:rgba(255,255,255,.035);color:#b4c0d3;padding:0 14px;font-size:11px;font-weight:850}
+    .send{min-height:44px;border:0;border-radius:13px;background:linear-gradient(105deg,#168fff,#785bff 68%,#b952ff);color:#fff;padding:0 16px;font-size:11px;font-weight:900}
+    .send:disabled,.secondary:disabled{opacity:.48;cursor:not-allowed}
+
+    /* preview */
+    .preview-frame{border-radius:19px;border:1px solid rgba(255,255,255,.07);background:#05070d;padding:14px;min-height:450px}
+    .email-preview{background:#0b111d;border:1px solid #243049;border-radius:19px;overflow:hidden}
+    .preview-bar{height:5px;background:linear-gradient(90deg,#16cfff,#5b7cff,#9b5dff,#e14dff)}
+    .preview-inner{padding:25px}
+    .preview-kicker{font-size:8px;letter-spacing:.14em;color:#6edfff;font-weight:900}
+    .preview-subject{margin:10px 0 0;color:#65738a;font-size:9px}
+    .email-preview h3{font-size:27px;letter-spacing:-.035em;margin:8px 0 14px}
+    .preview-intro{font-size:14px;color:#d0d9e8;line-height:1.65}
+    .preview-body{font-size:13px;color:#aebbd0;line-height:1.72;white-space:pre-wrap}
+    .preview-cta{display:inline-block;margin-top:20px;padding:12px 16px;border-radius:13px;background:linear-gradient(105deg,#168fff,#785bff 68%,#b952ff);font-size:11px;font-weight:900}
+    .preview-footer{margin-top:22px;padding-top:15px;border-top:1px solid #202a3d;font-size:8px;color:#607089;line-height:1.5}
+
+    /* tabs */
+    .tabs{display:flex;gap:7px;flex-wrap:wrap;margin:20px 0 11px}
+    .tab{min-height:39px;padding:0 13px;border-radius:999px;border:1px solid var(--line);background:rgba(255,255,255,.025);color:#8492a8;font-size:9px;font-weight:900}
+    .tab.active{color:#fff;background:rgba(52,127,255,.10);border-color:rgba(57,183,255,.22)}
+    .lower-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:14px 0 70px}
+    .list{display:grid;gap:8px}
+    .row{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;padding:11px 12px;border-radius:13px;border:1px solid rgba(255,255,255,.055);background:rgba(255,255,255,.022)}
+    .row b{display:block;font-size:10px;overflow:hidden;text-overflow:ellipsis}
+    .row span{display:block;font-size:7px;color:#6f7d94;margin-top:3px}
+    .badge{padding:6px 8px;border-radius:999px;font-size:7px;font-weight:900;white-space:nowrap}
+    .ok{background:rgba(72,231,166,.08);border:1px solid rgba(72,231,166,.18);color:#91efc2}
+    .pending{background:rgba(255,209,109,.07);border:1px solid rgba(255,209,109,.16);color:#ffd985}
+    .off{background:rgba(255,111,124,.07);border:1px solid rgba(255,111,124,.16);color:#ff9ea8}
+    .search-row{display:grid;grid-template-columns:1fr 140px;gap:8px;margin-bottom:10px}
+    .search-row input,.search-row select{height:40px;border-radius:11px;border:1px solid var(--line);background:#060b13;color:#fff;padding:0 11px}
+    .campaign-meta{display:flex;gap:7px;flex-wrap:wrap;margin-top:5px}
+    .campaign-meta span{padding:4px 6px;border-radius:7px;background:rgba(255,255,255,.03);font-size:6px;color:#78879e}
+    .statusline{min-height:22px;margin-top:10px;font-size:10px;color:#8190a7}
+    .statusline.good{color:#8feebe}.statusline.bad{color:#ff8d99}
+
+    /* modal */
+    .modal{position:fixed;inset:0;z-index:100;display:none;place-items:center;padding:18px;background:rgba(1,3,7,.76);backdrop-filter:blur(17px)}
+    .modal.open{display:grid}
+    .modal-card{width:min(520px,100%);padding:24px;border-radius:24px;border:1px solid rgba(255,255,255,.10);background:linear-gradient(145deg,#111a2a,#080d16);box-shadow:0 35px 100px rgba(0,0,0,.55)}
+    .modal-card small{font-size:8px;color:#7be3ff;font-weight:900;letter-spacing:.13em}
+    .modal-card h3{font-size:25px;margin:8px 0 10px}
+    .modal-card p{font-size:12px;color:#8996aa;line-height:1.6}
+    .confirm-box{margin:15px 0;padding:13px;border-radius:14px;background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.06)}
+    .confirm-box b{font-size:12px}.confirm-box span{display:block;color:#75839a;font-size:9px;margin-top:4px}
+    .confirm-check{display:flex;gap:9px;align-items:flex-start;font-size:10px;color:#9ba7bb;line-height:1.5}
+    .confirm-check input{accent-color:#7b6cff;margin-top:2px}
+    .modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:17px}
+
+    @media(max-width:920px){
+      .stats{grid-template-columns:repeat(2,1fr)}
+      .dashboard-grid,.lower-grid{grid-template-columns:1fr}
+    }
+    @media(max-width:620px){
+      .wrap{width:min(100% - 22px,1240px)}
+      nav{height:72px}
+      .nav-actions .back-label{display:none}
+      .hero{padding-top:28px}
+      .stats{grid-template-columns:1fr 1fr}
+      .stat{padding:15px}
+      .form-grid{grid-template-columns:1fr}
+      .field.full{grid-column:auto}
+      .panel-body{padding:15px}
+      .panel-head{padding:16px}
+      .search-row{grid-template-columns:1fr}
+      .secret-field{flex-direction:column}
+      .preview-frame{min-height:380px}
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <nav>
+      <a href="/" class="brand"><img src="/djtoolkit-icon.png" alt="DJ Toolkit"><span>DJ TOOLKIT</span></a>
+      <div class="nav-actions">
+        <a class="nav-btn" style="display:inline-flex;align-items:center;text-decoration:none" href="/"><span class="back-label">Zur Website</span><span class="back-label"> ↗</span></a>
+        <button id="logoutButton" class="nav-btn danger hidden" type="button">Abmelden</button>
+      </div>
+    </nav>
+
+    <section id="loginView" class="login-shell">
+      <div class="login-card">
+        <small>DJ TOOLKIT · ADMIN</small>
+        <h1>Newsletter Verwaltung</h1>
+        <p>Gib deinen <strong style="color:#fff">NEWSLETTER_ADMIN_TOKEN</strong> ein. Der Token wird nur für diese Browser-Sitzung gespeichert und nicht in die Website eingebaut.</p>
+        <form id="loginForm">
+          <div class="secret-field">
+            <input id="tokenInput" type="password" autocomplete="current-password" placeholder="Admin Token" required>
+            <button class="primary" type="submit">Anmelden →</button>
+          </div>
+        </form>
+        <div id="loginError" class="error-text"></div>
+        <div class="login-note">Die Seite selbst ist öffentlich abrufbar, aber Daten und Versandfunktionen werden vom Backend mit deinem geheimen Admin-Token geschützt.</div>
+      </div>
+    </section>
+
+    <main id="dashboardView" class="hidden">
+      <header class="hero">
+        <div class="eyebrow">DJ TOOLKIT · NEWSLETTER ADMIN</div>
+        <h1>Updates.<br><span class="grad">Sauber versendet.</span></h1>
+        <p class="lead">Abonnenten verwalten, Newsletter vorbereiten, als Testmail prüfen und anschließend kontrolliert an Release-, Beta- oder Update-Zielgruppen senden.</p>
+      </header>
+
+      <section class="stats">
+        <div class="stat"><span>BESTÄTIGT</span><b id="statConfirmed">—</b><em>aktive Newsletter-Abonnenten</em></div>
+        <div class="stat"><span>PENDING</span><b id="statPending">—</b><em>warten auf Double Opt-in</em></div>
+        <div class="stat"><span>BETA</span><b id="statBeta">—</b><em>möchten Testphasen</em></div>
+        <div class="stat"><span>RELEASE</span><b id="statRelease">—</b><em>möchten Release-News</em></div>
+      </section>
+
+      <section class="dashboard-grid">
+        <article class="panel">
+          <div class="panel-head">
+            <div><small>NEWSLETTER COMPOSER</small><h2>Neue Kampagne</h2></div>
+            <button id="loadTemplate" class="secondary" type="button">Beta-Vorlage</button>
+          </div>
+          <div class="panel-body">
+            <div class="form-grid">
+              <div class="field">
+                <label for="audience">ZIELGRUPPE</label>
+                <select id="audience">
+                  <option value="all">Alle bestätigten Abonnenten</option>
+                  <option value="release">App Release</option>
+                  <option value="beta">Beta & Testphase</option>
+                  <option value="updates">Wichtige Updates</option>
+                </select>
+              </div>
+              <div class="field">
+                <label>VORAUSSICHTLICHE EMPFÄNGER</label>
+                <input id="audienceCount" value="—" readonly>
+              </div>
+              <div class="field full">
+                <label for="subject">E-MAIL BETREFF</label>
+                <input id="subject" maxlength="180" placeholder="DJ Toolkit Beta startet">
+                <div class="char"><span id="subjectCount">0</span>/180</div>
+              </div>
+              <div class="field full">
+                <label for="title">HEADLINE IN DER MAIL</label>
+                <input id="title" maxlength="180" placeholder="Die erste Testphase beginnt.">
+                <div class="char"><span id="titleCount">0</span>/180</div>
+              </div>
+              <div class="field full">
+                <label for="intro">KURZE EINLEITUNG · OPTIONAL</label>
+                <textarea id="intro" maxlength="1200" placeholder="Du gehörst zu den Ersten, die erfahren, wann DJ Toolkit getestet werden kann."></textarea>
+                <div class="char"><span id="introCount">0</span>/1200</div>
+              </div>
+              <div class="field full">
+                <label for="body">NACHRICHT</label>
+                <textarea id="body" maxlength="6000" style="min-height:190px" placeholder="Hier kommt dein Newslettertext hinein …"></textarea>
+                <div class="char"><span id="bodyCount">0</span>/6000</div>
+              </div>
+              <div class="field">
+                <label for="ctaLabel">BUTTON-TEXT</label>
+                <input id="ctaLabel" maxlength="80" value="DJ Toolkit öffnen">
+              </div>
+              <div class="field">
+                <label for="ctaURL">BUTTON-LINK</label>
+                <input id="ctaURL" maxlength="500" value="https://dj-toolkit.com">
+              </div>
+              <div class="field full">
+                <label for="testEmail">TESTMAIL AN</label>
+                <input id="testEmail" type="email" placeholder="info@dj-toolkit.com">
+              </div>
+            </div>
+
+            <div class="composer-actions">
+              <button id="saveDraftButton" class="secondary" type="button">Entwurf speichern</button>
+              <button id="testButton" class="secondary" type="button">Testmail senden</button>
+              <button id="sendButton" class="send" type="button">Newsletter senden →</button>
+            </div>
+            <div id="composerStatus" class="statusline"></div>
+          </div>
+        </article>
+
+        <article class="panel">
+          <div class="panel-head"><div><small>LIVE PREVIEW</small><h2>Mail-Vorschau</h2></div></div>
+          <div class="panel-body">
+            <div class="preview-frame">
+              <div class="email-preview">
+                <div class="preview-bar"></div>
+                <div class="preview-inner">
+                  <div class="preview-kicker">DJ TOOLKIT · UPDATE</div>
+                  <div class="preview-subject">Betreff: <span id="previewSubject">—</span></div>
+                  <h3 id="previewTitle">Deine Headline erscheint hier.</h3>
+                  <div id="previewIntro" class="preview-intro">Eine kurze Einleitung kann hier stehen.</div>
+                  <div id="previewBody" class="preview-body">Dein Newslettertext wird während des Schreibens live angezeigt.</div>
+                  <span id="previewCTA" class="preview-cta">DJ Toolkit öffnen →</span>
+                  <div class="preview-footer">Du erhältst diese Nachricht, weil du den DJ-Toolkit Newsletter bestätigt hast. · Newsletter abbestellen</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </article>
+      </section>
+
+      <div class="tabs">
+        <button class="tab active" data-tab="subscribers" type="button">Abonnenten</button>
+        <button class="tab" data-tab="campaigns" type="button">Versandhistorie</button>
+      </div>
+
+      <section class="lower-grid">
+        <article id="subscribersPanel" class="panel">
+          <div class="panel-head"><div><small>NEWSLETTER LISTE</small><h2>Abonnenten</h2></div><span id="dbBadge" class="badge ok">—</span></div>
+          <div class="panel-body">
+            <div class="search-row">
+              <input id="subscriberSearch" placeholder="Name oder E-Mail suchen …">
+              <select id="subscriberStatus">
+                <option value="all">Alle Status</option>
+                <option value="confirmed">Bestätigt</option>
+                <option value="pending">Pending</option>
+                <option value="unsubscribed">Abgemeldet</option>
+              </select>
+            </div>
+            <div id="subscriberList" class="list"></div>
+          </div>
+        </article>
+
+        <article id="campaignsPanel" class="panel">
+          <div class="panel-head"><div><small>NEWSLETTER HISTORY</small><h2>Letzte Versendungen</h2></div><button id="refreshButton" class="secondary" type="button">Aktualisieren</button></div>
+          <div class="panel-body"><div id="campaignList" class="list"></div></div>
+        </article>
+      </section>
+    </main>
+  </div>
+
+  <div id="confirmModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
+    <div class="modal-card">
+      <small>LETZTE KONTROLLE</small>
+      <h3 id="confirmTitle">Newsletter wirklich senden?</h3>
+      <p>Der Versand geht an echte bestätigte Abonnenten. Prüfe Zielgruppe, Betreff und Empfängerzahl vor dem Senden.</p>
+      <div class="confirm-box">
+        <b id="confirmSubject">—</b>
+        <span id="confirmAudience">—</span>
+      </div>
+      <label class="confirm-check">
+        <input id="confirmCheckbox" type="checkbox">
+        <span>Ich habe die Vorschau geprüft und möchte diesen Newsletter jetzt an die angezeigte Zielgruppe senden.</span>
+      </label>
+      <div class="modal-actions">
+        <button id="cancelSend" class="secondary" type="button">Abbrechen</button>
+        <button id="confirmSend" class="send" type="button" disabled>Jetzt senden →</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const $=id=>document.getElementById(id);
+    const loginView=$('loginView');
+    const dashboardView=$('dashboardView');
+    const logoutButton=$('logoutButton');
+    const loginForm=$('loginForm');
+    const tokenInput=$('tokenInput');
+    const loginError=$('loginError');
+    const composerStatus=$('composerStatus');
+
+    let dashboardData=null;
+    let adminToken=sessionStorage.getItem('djtoolkit_newsletter_admin_token')||'';
+
+    function authHeaders(extra={}){
+      return {...extra,Authorization:`Bearer ${adminToken}`};
+    }
+
+    async function api(path,options={}){
+      const response=await fetch(path,{
+        ...options,
+        headers:authHeaders(options.headers||{})
+      });
+      const body=await response.json().catch(()=>({}));
+      if(response.status===401){
+        logout();
+        throw new Error('Admin-Token ungültig oder nicht mehr gültig.');
+      }
+      if(!response.ok)throw new Error(body.error||`HTTP ${response.status}`);
+      return body;
+    }
+
+    function showDashboard(){
+      loginView.classList.add('hidden');
+      dashboardView.classList.remove('hidden');
+      logoutButton.classList.remove('hidden');
+    }
+
+    function showLogin(){
+      dashboardView.classList.add('hidden');
+      loginView.classList.remove('hidden');
+      logoutButton.classList.add('hidden');
+    }
+
+    function logout(){
+      adminToken='';
+      sessionStorage.removeItem('djtoolkit_newsletter_admin_token');
+      showLogin();
+    }
+
+    logoutButton.addEventListener('click',logout);
+
+    loginForm.addEventListener('submit',async event=>{
+      event.preventDefault();
+      loginError.textContent='';
+      adminToken=tokenInput.value.trim();
+      if(!adminToken)return;
+
+      try{
+        const data=await api('/api/admin/newsletter/dashboard');
+        sessionStorage.setItem('djtoolkit_newsletter_admin_token',adminToken);
+        dashboardData=data;
+        showDashboard();
+        renderDashboard(data);
+        await loadSubscribers();
+      }catch(error){
+        loginError.textContent=error.message;
+        adminToken='';
+      }
+    });
+
+    const fields=['subject','title','intro','body','ctaLabel','ctaURL'];
+    fields.forEach(id=>{
+      $(id).addEventListener('input',()=>{
+        updatePreview();
+        updateCount(id);
+        saveDraft(false);
+      });
+    });
+    $('audience').addEventListener('change',()=>{
+      updateAudienceCount();
+      saveDraft(false);
+    });
+
+    function updateCount(id){
+      const el=$(id);
+      const count=$(id+'Count');
+      if(count)count.textContent=el.value.length;
+    }
+
+    function updatePreview(){
+      $('previewSubject').textContent=$('subject').value.trim()||'—';
+      $('previewTitle').textContent=$('title').value.trim()||'Deine Headline erscheint hier.';
+      $('previewIntro').textContent=$('intro').value.trim()||'Eine kurze Einleitung kann hier stehen.';
+      $('previewBody').textContent=$('body').value.trim()||'Dein Newslettertext wird während des Schreibens live angezeigt.';
+      $('previewCTA').textContent=($('ctaLabel').value.trim()||'DJ Toolkit öffnen')+' →';
+    }
+
+    function audienceLabel(value){
+      return {
+        all:'Alle bestätigten Abonnenten',
+        release:'App Release',
+        beta:'Beta & Testphase',
+        updates:'Wichtige Updates'
+      }[value]||value;
+    }
+
+    function audienceRecipients(value){
+      const c=dashboardData?.counts||{};
+      return value==='all' ? Number(c.confirmed||0) : Number(c[value]||0);
+    }
+
+    function updateAudienceCount(){
+      $('audienceCount').value=String(audienceRecipients($('audience').value));
+    }
+
+    function campaignPayload(){
+      return {
+        audience:$('audience').value,
+        subject:$('subject').value.trim(),
+        title:$('title').value.trim(),
+        intro:$('intro').value.trim(),
+        body:$('body').value.trim(),
+        ctaLabel:$('ctaLabel').value.trim()||'DJ Toolkit öffnen',
+        ctaURL:$('ctaURL').value.trim()||'https://dj-toolkit.com'
+      };
+    }
+
+    function validateComposer(){
+      const payload=campaignPayload();
+      if(!payload.subject)return 'Bitte einen E-Mail-Betreff eingeben.';
+      if(!payload.title)return 'Bitte eine Headline eingeben.';
+      if(!payload.body)return 'Bitte einen Newslettertext eingeben.';
+      try{new URL(payload.ctaURL)}catch{return 'Bitte einen gültigen Button-Link eingeben.'}
+      return null;
+    }
+
+    function setStatus(text,type=''){
+      composerStatus.textContent=text;
+      composerStatus.className='statusline '+type;
+    }
+
+    function saveDraft(showMessage=true){
+      const draft={...campaignPayload(),testEmail:$('testEmail').value.trim()};
+      localStorage.setItem('djtoolkit_newsletter_draft',JSON.stringify(draft));
+      if(showMessage)setStatus('Entwurf wurde lokal in diesem Browser gespeichert.','good');
+    }
+
+    function loadDraft(){
+      const raw=localStorage.getItem('djtoolkit_newsletter_draft');
+      if(!raw)return;
+      try{
+        const draft=JSON.parse(raw);
+        for(const id of ['audience','subject','title','intro','body','ctaLabel','ctaURL','testEmail']){
+          if(draft[id]!=null && $(id))$(id).value=draft[id];
+        }
+      }catch{}
+      fields.forEach(updateCount);
+      updatePreview();
+      updateAudienceCount();
+    }
+
+    $('saveDraftButton').addEventListener('click',()=>saveDraft(true));
+
+    $('loadTemplate').addEventListener('click',()=>{
+      $('audience').value='beta';
+      $('subject').value='DJ Toolkit Beta startet';
+      $('title').value='Die erste Testphase beginnt.';
+      $('intro').value='Du gehörst zu den Ersten, die erfahren, wann DJ Toolkit getestet werden kann.';
+      $('body').value='Wir bereiten die erste DJ-Toolkit Testphase vor. Sobald der Zugang geöffnet wird, erhältst du hier alle wichtigen Informationen zur Teilnahme, zu unterstützten Funktionen und zum Ablauf.\\n\\nDanke, dass du DJ Toolkit von Anfang an begleitest.';
+      $('ctaLabel').value='Mehr über DJ Toolkit';
+      $('ctaURL').value='https://dj-toolkit.com';
+      fields.forEach(updateCount);
+      updatePreview();
+      updateAudienceCount();
+      saveDraft(false);
+      setStatus('Beta-Vorlage geladen. Du kannst sie jetzt anpassen.','good');
+    });
+
+    $('testButton').addEventListener('click',async()=>{
+      const error=validateComposer();
+      if(error)return setStatus(error,'bad');
+      const email=$('testEmail').value.trim();
+      if(!email)return setStatus('Bitte gib zuerst eine Test-E-Mail-Adresse ein.','bad');
+
+      $('testButton').disabled=true;
+      setStatus('Testmail wird gesendet …');
+      try{
+        const result=await api('/api/admin/newsletter/test',{
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({...campaignPayload(),email})
+        });
+        setStatus(`Testmail wurde an ${result.sentTo} gesendet.`,'good');
+      }catch(error){
+        setStatus(error.message,'bad');
+      }finally{
+        $('testButton').disabled=false;
+      }
+    });
+
+    const modal=$('confirmModal');
+    $('sendButton').addEventListener('click',()=>{
+      const error=validateComposer();
+      if(error)return setStatus(error,'bad');
+
+      const payload=campaignPayload();
+      $('confirmSubject').textContent=payload.subject;
+      $('confirmAudience').textContent=`${audienceLabel(payload.audience)} · ${audienceRecipients(payload.audience)} Empfänger`;
+      $('confirmCheckbox').checked=false;
+      $('confirmSend').disabled=true;
+      modal.classList.add('open');
+    });
+
+    $('confirmCheckbox').addEventListener('change',event=>{
+      $('confirmSend').disabled=!event.target.checked;
+    });
+    $('cancelSend').addEventListener('click',()=>modal.classList.remove('open'));
+    modal.addEventListener('click',event=>{if(event.target===modal)modal.classList.remove('open')});
+
+    $('confirmSend').addEventListener('click',async()=>{
+      const payload=campaignPayload();
+      $('confirmSend').disabled=true;
+      $('confirmSend').textContent='Wird gesendet …';
+      setStatus('Newsletter wird versendet …');
+      try{
+        const result=await api('/api/admin/newsletter/send',{
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify(payload)
+        });
+        modal.classList.remove('open');
+        setStatus(`Versand abgeschlossen · ${result.sent} gesendet · ${result.failed} fehlgeschlagen · ${result.campaignId}`,'good');
+        await refreshDashboard();
+      }catch(error){
+        setStatus(error.message,'bad');
+      }finally{
+        $('confirmSend').textContent='Jetzt senden →';
+      }
+    });
+
+    function renderDashboard(data){
+      dashboardData=data;
+      const c=data.counts||{};
+      $('statConfirmed').textContent=c.confirmed??0;
+      $('statPending').textContent=c.pending??0;
+      $('statBeta').textContent=c.beta??0;
+      $('statRelease').textContent=c.release??0;
+      $('dbBadge').textContent=data.database||'—';
+      updateAudienceCount();
+      renderCampaigns(data.campaigns||[]);
+    }
+
+    function renderCampaigns(campaigns){
+      const box=$('campaignList');
+      box.innerHTML='';
+      if(!campaigns.length){
+        box.innerHTML='<div class="row"><div><b>Noch keine Kampagne versendet</b><span>Deine Versandhistorie erscheint hier.</span></div></div>';
+        return;
+      }
+      campaigns.forEach(item=>{
+        const row=document.createElement('div');
+        row.className='row';
+        const when=item.createdAt ? new Date(item.createdAt).toLocaleString('de-DE') : '—';
+        row.innerHTML=`<div><b></b><span></span><div class="campaign-meta"><span></span><span></span><span></span></div></div><span class="badge ${item.failed ? 'pending':'ok'}"></span>`;
+        row.querySelector('b').textContent=item.subject||'Ohne Betreff';
+        row.querySelector('.row > div > span').textContent=when;
+        const metas=row.querySelectorAll('.campaign-meta span');
+        metas[0].textContent=audienceLabel(item.audience);
+        metas[1].textContent=`${item.sent||0}/${item.recipients||0} gesendet`;
+        metas[2].textContent=item.id||'';
+        row.querySelector('.badge').textContent=item.failed ? `${item.failed} Fehler` : 'OK';
+        box.appendChild(row);
+      });
+    }
+
+    async function loadSubscribers(){
+      const params=new URLSearchParams({
+        status:$('subscriberStatus').value,
+        q:$('subscriberSearch').value.trim()
+      });
+      try{
+        const data=await api('/api/admin/newsletter/subscribers?'+params.toString());
+        renderSubscribers(data.subscribers||[]);
+      }catch(error){
+        $('subscriberList').innerHTML=`<div class="row"><div><b>Fehler</b><span>${error.message}</span></div></div>`;
+      }
+    }
+
+    function renderSubscribers(items){
+      const box=$('subscriberList');
+      box.innerHTML='';
+      if(!items.length){
+        box.innerHTML='<div class="row"><div><b>Keine Abonnenten gefunden</b><span>Ändere Suche oder Statusfilter.</span></div></div>';
+        return;
+      }
+      items.forEach(item=>{
+        const row=document.createElement('div');
+        row.className='row';
+        const label=item.status==='confirmed'?'Bestätigt':item.status==='pending'?'Pending':'Abgemeldet';
+        const klass=item.status==='confirmed'?'ok':item.status==='pending'?'pending':'off';
+        const date=item.confirmedAt||item.createdAt;
+        const interests=(item.interests||[]).map(x=>({release:'Release',beta:'Beta',updates:'Updates'}[x]||x)).join(' · ');
+        row.innerHTML='<div><b></b><span></span></div><span class="badge"></span>';
+        row.querySelector('b').textContent=item.name ? `${item.name} · ${item.email}` : item.email;
+        row.querySelector('div span').textContent=`${interests||'—'} · ${date?new Date(date).toLocaleDateString('de-DE'):'—'}`;
+        const badge=row.querySelector('.badge');
+        badge.className='badge '+klass;
+        badge.textContent=label;
+        box.appendChild(row);
+      });
+    }
+
+    let searchTimer=null;
+    $('subscriberSearch').addEventListener('input',()=>{
+      clearTimeout(searchTimer);
+      searchTimer=setTimeout(loadSubscribers,250);
+    });
+    $('subscriberStatus').addEventListener('change',loadSubscribers);
+
+    async function refreshDashboard(){
+      const data=await api('/api/admin/newsletter/dashboard');
+      renderDashboard(data);
+      await loadSubscribers();
+    }
+
+    $('refreshButton').addEventListener('click',refreshDashboard);
+
+    async function boot(){
+      loadDraft();
+      if(!adminToken)return showLogin();
+      try{
+        const data=await api('/api/admin/newsletter/dashboard');
+        dashboardData=data;
+        showDashboard();
+        renderDashboard(data);
+        await loadSubscribers();
+      }catch{
+        showLogin();
+      }
+    }
+
+    document.addEventListener('keydown',event=>{
+      if(event.key==='Escape')modal.classList.remove('open');
+    });
+
+    boot();
+  </script>
+</body>
+</html>
