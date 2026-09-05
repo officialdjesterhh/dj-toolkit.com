@@ -4,9 +4,21 @@ import path from "path";
 import { fileURLToPath } from "url";
 import crypto from "crypto";
 import fs from "fs";
+import pg from "pg";
 
 const app = express();
 const port = process.env.PORT || 3000;
+const { Pool } = pg;
+const databaseURL = String(process.env.DATABASE_URL || "").trim();
+const feedbackSequenceStart = Math.max(1, Number(process.env.FEEDBACK_SEQUENCE_START || 1) || 1);
+const db = databaseURL
+  ? new Pool({
+      connectionString: databaseURL,
+      ssl: String(process.env.DATABASE_SSL || "true").toLowerCase() === "false"
+        ? false
+        : { rejectUnauthorized: false }
+    })
+  : null;
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -57,7 +69,52 @@ function writeJSONFile(filePath, value) {
   fs.writeFileSync(filePath, JSON.stringify(value, null, 2));
 }
 
-function nextFeedbackReference() {
+async function initDatabase() {
+  if (!db) {
+    console.warn("DATABASE_URL not set: newsletter + feedback numbering use local JSON fallback.");
+    return;
+  }
+
+  const sequenceStart = Number.isFinite(feedbackSequenceStart) ? feedbackSequenceStart : 1;
+
+  await db.query(`
+    CREATE SEQUENCE IF NOT EXISTS feedback_reference_seq
+    START WITH ${sequenceStart}
+    INCREMENT BY 1
+    MINVALUE 1
+  `);
+
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS newsletter_subscribers (
+      id TEXT PRIMARY KEY,
+      email TEXT UNIQUE NOT NULL,
+      name TEXT,
+      interests JSONB NOT NULL DEFAULT '["release","beta","updates"]'::jsonb,
+      status TEXT NOT NULL DEFAULT 'pending',
+      confirm_token_hash TEXT,
+      unsubscribe_token TEXT UNIQUE NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      confirmed_at TIMESTAMPTZ,
+      unsubscribed_at TIMESTAMPTZ,
+      consent_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      source TEXT NOT NULL DEFAULT 'dj-toolkit.com'
+    )
+  `);
+
+  await db.query(`CREATE INDEX IF NOT EXISTS idx_newsletter_status ON newsletter_subscribers(status)`);
+  await db.query(`CREATE INDEX IF NOT EXISTS idx_newsletter_confirm_hash ON newsletter_subscribers(confirm_token_hash)`);
+
+  console.log("DJ Toolkit Postgres persistence ready.");
+}
+
+async function nextFeedbackReference() {
+  if (db) {
+    const result = await db.query(`SELECT nextval('feedback_reference_seq') AS number`);
+    const current = Number(result.rows?.[0]?.number || 1);
+    return `DJT-FB-${String(current).padStart(6, "0")}`;
+  }
+
   const state = readJSONFile(feedbackStatePath, { next: 1 });
   const current = Math.max(1, Number(state?.next) || 1);
   writeJSONFile(feedbackStatePath, { next: current + 1, updatedAt: new Date().toISOString() });
@@ -85,6 +142,25 @@ function newsletterRateAllowed(req) {
   return true;
 }
 
+function rowToNewsletterSubscriber(row) {
+  if (!row) return null;
+  return {
+    id: row.id,
+    email: row.email,
+    name: row.name,
+    interests: newsletterInterests(row.interests),
+    status: row.status,
+    confirmTokenHash: row.confirm_token_hash,
+    unsubscribeToken: row.unsubscribe_token,
+    createdAt: row.created_at ? new Date(row.created_at).toISOString() : null,
+    updatedAt: row.updated_at ? new Date(row.updated_at).toISOString() : null,
+    confirmedAt: row.confirmed_at ? new Date(row.confirmed_at).toISOString() : null,
+    unsubscribedAt: row.unsubscribed_at ? new Date(row.unsubscribed_at).toISOString() : null,
+    consentAt: row.consent_at ? new Date(row.consent_at).toISOString() : null,
+    source: row.source || "dj-toolkit.com"
+  };
+}
+
 function newsletterStore() {
   const value = readJSONFile(newsletterStatePath, { subscribers: [] });
   return {
@@ -97,6 +173,156 @@ function saveNewsletterStore(value) {
     subscribers: Array.isArray(value?.subscribers) ? value.subscribers : [],
     updatedAt: new Date().toISOString()
   });
+}
+
+async function findNewsletterSubscriberByEmail(email) {
+  if (!db) {
+    return newsletterStore().subscribers.find(
+      item => String(item?.email || "").toLowerCase() === String(email || "").toLowerCase()
+    ) || null;
+  }
+
+  const result = await db.query(
+    `SELECT * FROM newsletter_subscribers WHERE LOWER(email)=LOWER($1) LIMIT 1`,
+    [email]
+  );
+  return rowToNewsletterSubscriber(result.rows?.[0]);
+}
+
+async function upsertNewsletterSubscriber(subscriber) {
+  if (!db) {
+    const store = newsletterStore();
+    const existing = store.subscribers.find(
+      item => String(item?.email || "").toLowerCase() === String(subscriber.email || "").toLowerCase()
+    );
+    if (existing) Object.assign(existing, subscriber);
+    else store.subscribers.push(subscriber);
+    saveNewsletterStore(store);
+    return subscriber;
+  }
+
+  const result = await db.query(`
+    INSERT INTO newsletter_subscribers (
+      id,email,name,interests,status,confirm_token_hash,unsubscribe_token,
+      created_at,updated_at,confirmed_at,unsubscribed_at,consent_at,source
+    )
+    VALUES ($1,$2,$3,$4::jsonb,$5,$6,$7,$8,$9,$10,$11,$12,$13)
+    ON CONFLICT (email) DO UPDATE SET
+      name=EXCLUDED.name,
+      interests=EXCLUDED.interests,
+      status=EXCLUDED.status,
+      confirm_token_hash=EXCLUDED.confirm_token_hash,
+      unsubscribe_token=EXCLUDED.unsubscribe_token,
+      updated_at=EXCLUDED.updated_at,
+      confirmed_at=EXCLUDED.confirmed_at,
+      unsubscribed_at=EXCLUDED.unsubscribed_at,
+      consent_at=EXCLUDED.consent_at,
+      source=EXCLUDED.source
+    RETURNING *
+  `, [
+    subscriber.id,
+    subscriber.email,
+    subscriber.name,
+    JSON.stringify(newsletterInterests(subscriber.interests)),
+    subscriber.status,
+    subscriber.confirmTokenHash,
+    subscriber.unsubscribeToken,
+    subscriber.createdAt,
+    subscriber.updatedAt,
+    subscriber.confirmedAt,
+    subscriber.unsubscribedAt,
+    subscriber.consentAt,
+    subscriber.source || "dj-toolkit.com"
+  ]);
+
+  return rowToNewsletterSubscriber(result.rows?.[0]);
+}
+
+async function findNewsletterSubscriberByConfirmHash(hash) {
+  if (!db) {
+    return newsletterStore().subscribers.find(
+      item => item?.status === "pending" && item?.confirmTokenHash === hash
+    ) || null;
+  }
+  const result = await db.query(
+    `SELECT * FROM newsletter_subscribers WHERE status='pending' AND confirm_token_hash=$1 LIMIT 1`,
+    [hash]
+  );
+  return rowToNewsletterSubscriber(result.rows?.[0]);
+}
+
+async function confirmNewsletterSubscriber(id) {
+  if (!db) {
+    const store = newsletterStore();
+    const subscriber = store.subscribers.find(item => item?.id === id);
+    if (!subscriber) return null;
+    const now = new Date().toISOString();
+    subscriber.status = "confirmed";
+    subscriber.confirmTokenHash = null;
+    subscriber.confirmedAt = now;
+    subscriber.updatedAt = now;
+    saveNewsletterStore(store);
+    return subscriber;
+  }
+
+  const result = await db.query(`
+    UPDATE newsletter_subscribers
+    SET status='confirmed',
+        confirm_token_hash=NULL,
+        confirmed_at=NOW(),
+        updated_at=NOW(),
+        unsubscribed_at=NULL
+    WHERE id=$1
+    RETURNING *
+  `, [id]);
+
+  return rowToNewsletterSubscriber(result.rows?.[0]);
+}
+
+async function findNewsletterSubscriberByUnsubscribeToken(token) {
+  if (!db) {
+    return newsletterStore().subscribers.find(item => item?.unsubscribeToken === token) || null;
+  }
+  const result = await db.query(
+    `SELECT * FROM newsletter_subscribers WHERE unsubscribe_token=$1 LIMIT 1`,
+    [token]
+  );
+  return rowToNewsletterSubscriber(result.rows?.[0]);
+}
+
+async function unsubscribeNewsletterSubscriber(id) {
+  if (!db) {
+    const store = newsletterStore();
+    const subscriber = store.subscribers.find(item => item?.id === id);
+    if (!subscriber) return null;
+    const now = new Date().toISOString();
+    subscriber.status = "unsubscribed";
+    subscriber.unsubscribedAt = now;
+    subscriber.updatedAt = now;
+    saveNewsletterStore(store);
+    return subscriber;
+  }
+
+  const result = await db.query(`
+    UPDATE newsletter_subscribers
+    SET status='unsubscribed',
+        unsubscribed_at=NOW(),
+        updated_at=NOW()
+    WHERE id=$1
+    RETURNING *
+  `, [id]);
+
+  return rowToNewsletterSubscriber(result.rows?.[0]);
+}
+
+async function confirmedNewsletterSubscribers() {
+  if (!db) {
+    return newsletterStore().subscribers.filter(item => item?.status === "confirmed");
+  }
+  const result = await db.query(
+    `SELECT * FROM newsletter_subscribers WHERE status='confirmed' ORDER BY confirmed_at ASC NULLS LAST`
+  );
+  return result.rows.map(rowToNewsletterSubscriber);
 }
 
 function tokenHash(value) {
@@ -952,7 +1178,7 @@ app.post("/api/feedback", async (req, res) => {
   const fromName = String(process.env.FEEDBACK_FROM_NAME || "DJ Toolkit").trim().slice(0, 80);
   const from = `${fromName} <${fromAddress}>`;
   const submittedAt = new Date().toISOString();
-  const feedbackReference = nextFeedbackReference();
+  const feedbackReference = await nextFeedbackReference();
   const safeFeedbackReference = escapeHTML(feedbackReference);
 
   const ratingText = rating ? `${rating}/5` : "nicht angegeben";
@@ -1263,14 +1489,15 @@ app.post("/api/newsletter/subscribe", async (req, res) => {
     return res.status(503).json({ error: "Der Newsletter-Mailversand ist noch nicht konfiguriert." });
   }
 
-  const store = newsletterStore();
-  const existing = store.subscribers.find(item => String(item?.email || "").toLowerCase() === email);
+  const existing = await findNewsletterSubscriberByEmail(email);
 
   if (existing?.status === "confirmed") {
-    existing.name = name || existing.name || null;
-    existing.interests = interests;
-    existing.updatedAt = new Date().toISOString();
-    saveNewsletterStore(store);
+    await upsertNewsletterSubscriber({
+      ...existing,
+      name: name || existing.name || null,
+      interests,
+      updatedAt: new Date().toISOString()
+    });
     return res.status(200).json({ ok: true, alreadySubscribed: true });
   }
 
@@ -1294,12 +1521,7 @@ app.post("/api/newsletter/subscribe", async (req, res) => {
     source: "dj-toolkit.com"
   };
 
-  if (existing) {
-    Object.assign(existing, subscriber);
-  } else {
-    store.subscribers.push(subscriber);
-  }
-  saveNewsletterStore(store);
+  await upsertNewsletterSubscriber(subscriber);
 
   const baseURL = publicBaseURL();
   const confirmURL = `${baseURL}/api/newsletter/confirm?token=${encodeURIComponent(confirmToken)}`;
@@ -1367,8 +1589,7 @@ app.get("/api/newsletter/confirm", async (req, res) => {
   }
 
   const hash = tokenHash(token);
-  const store = newsletterStore();
-  const subscriber = store.subscribers.find(item => item?.status === "pending" && item?.confirmTokenHash === hash);
+  let subscriber = await findNewsletterSubscriberByConfirmHash(hash);
 
   if (!subscriber) {
     return res.status(400).send(renderSimplePage({
@@ -1378,12 +1599,14 @@ app.get("/api/newsletter/confirm", async (req, res) => {
     }));
   }
 
-  const now = new Date().toISOString();
-  subscriber.status = "confirmed";
-  subscriber.confirmTokenHash = null;
-  subscriber.confirmedAt = now;
-  subscriber.updatedAt = now;
-  saveNewsletterStore(store);
+  subscriber = await confirmNewsletterSubscriber(subscriber.id);
+  if (!subscriber) {
+    return res.status(500).send(renderSimplePage({
+      eyebrow: "DJ TOOLKIT · NEWSLETTER",
+      title: "Bestätigung fehlgeschlagen",
+      text: "Die Newsletter-Anmeldung konnte gerade nicht gespeichert werden. Bitte versuche es später erneut."
+    }));
+  }
 
   const baseURL = publicBaseURL();
   const unsubscribeURL = `${baseURL}/api/newsletter/unsubscribe?token=${encodeURIComponent(subscriber.unsubscribeToken)}`;
@@ -1430,10 +1653,9 @@ app.get("/api/newsletter/confirm", async (req, res) => {
   }));
 });
 
-app.get("/api/newsletter/unsubscribe", (req, res) => {
+app.get("/api/newsletter/unsubscribe", async (req, res) => {
   const token = String(req.query?.token || "").trim();
-  const store = newsletterStore();
-  const subscriber = store.subscribers.find(item => item?.unsubscribeToken === token);
+  const subscriber = await findNewsletterSubscriberByUnsubscribeToken(token);
 
   if (!subscriber) {
     return res.status(400).send(renderSimplePage({
@@ -1443,11 +1665,7 @@ app.get("/api/newsletter/unsubscribe", (req, res) => {
     }));
   }
 
-  const now = new Date().toISOString();
-  subscriber.status = "unsubscribed";
-  subscriber.unsubscribedAt = now;
-  subscriber.updatedAt = now;
-  saveNewsletterStore(store);
+  await unsubscribeNewsletterSubscriber(subscriber.id);
 
   return res.status(200).send(renderSimplePage({
     eyebrow: "DJ TOOLKIT · NEWSLETTER",
@@ -1485,10 +1703,9 @@ app.post("/api/admin/newsletter/send", async (req, res) => {
     return res.status(400).json({ error: "Ungültige Zielgruppe." });
   }
 
-  const store = newsletterStore();
-  const recipients = store.subscribers.filter(item =>
-    item?.status === "confirmed"
-    && validEmail(item?.email)
+  const confirmed = await confirmedNewsletterSubscribers();
+  const recipients = confirmed.filter(item =>
+    validEmail(item?.email)
     && (audience === "all" || newsletterInterests(item?.interests).includes(audience))
   );
 
@@ -1574,7 +1791,7 @@ app.get("/health", (_, res) => {
   res.set("Cache-Control", "no-store");
   res.json({
     ok: true,
-    version: "10.6.0",
+    version: "10.7.0",
     onlineAnalysis: true,
     catalogPreviewAudio: true,
     djMetadata: true,
@@ -1591,6 +1808,9 @@ app.get("/health", (_, res) => {
     newsletterDoubleOptIn: true,
     newsletterCampaignAPI: true,
     newsletterUnsubscribe: true,
+    postgresPersistence: Boolean(db),
+    persistentFeedbackSequence: Boolean(db),
+    persistentNewsletterSubscribers: Boolean(db),
     resendHTTPSAPI: true,
     clientPortal: true,
     requestETA: true,
@@ -2286,6 +2506,14 @@ app.put("/api/events/:eventID/team", (req, res) => {
 });
 
 
-app.listen(port, () => {
-  console.log(`DJToolkit request server running on http://localhost:${port}`);
-});
+initDatabase()
+  .then(() => {
+    app.listen(port, () => {
+      console.log(`DJToolkit request server running on http://localhost:${port}`);
+      console.log(`Persistent database: ${db ? "Postgres" : "local JSON fallback"}`);
+    });
+  })
+  .catch(error => {
+    console.error("Database initialization failed", error);
+    process.exit(1);
+  });
