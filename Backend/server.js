@@ -5,6 +5,7 @@ import { fileURLToPath } from "url";
 import crypto from "crypto";
 import fs from "fs";
 import pg from "pg";
+import { installCloudAuth } from "./cloud-auth.js";
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -26,15 +27,19 @@ const webDir = path.resolve(__dirname, "../GuestWeb");
 const storePath = path.resolve(__dirname, "requests.json");
 const eventStatePath = path.resolve(__dirname, "events.json");
 const feedbackStatePath = String(process.env.FEEDBACK_STATE_PATH || path.resolve(__dirname, "feedback-state.json"));
+const legalReportStatePath = String(process.env.LEGAL_REPORT_STATE_PATH || path.resolve(__dirname, "legal-content-reports.json"));
 const newsletterStatePath = String(process.env.NEWSLETTER_STATE_PATH || path.resolve(__dirname, "newsletter-subscribers.json"));
 const newsletterCampaignStatePath = String(process.env.NEWSLETTER_CAMPAIGN_STATE_PATH || path.resolve(__dirname, "newsletter-campaigns.json"));
 const requestRateBuckets = new Map();
 const feedbackRateBuckets = new Map();
+const legalReportRateBuckets = new Map();
 const newsletterRateBuckets = new Map();
 const RATE_WINDOW_MS = 60 * 1000;
 const MAX_REQUESTS_PER_MINUTE = 12;
 const FEEDBACK_RATE_WINDOW_MS = 15 * 60 * 1000;
 const MAX_FEEDBACK_PER_WINDOW = 5;
+const LEGAL_REPORT_RATE_WINDOW_MS = 15 * 60 * 1000;
+const MAX_LEGAL_REPORTS_PER_WINDOW = 5;
 const NEWSLETTER_RATE_WINDOW_MS = 15 * 60 * 1000;
 const MAX_NEWSLETTER_SIGNUPS_PER_WINDOW = 5;
 const NEWSLETTER_CONSENT_VERSION = "newsletter-consent-v1-2026-09-05";
@@ -48,7 +53,7 @@ const CATALOG_CACHE_TTL_MS = 5 * 60 * 1000;
 const DJ_METADATA_CACHE_TTL_MS = 12 * 60 * 60 * 1000;
 
 app.use(cors());
-app.use(express.json({ limit: "256kb" }));
+app.use(express.json({ limit: "2mb" }));
 app.use(express.static(webDir));
 
 
@@ -75,7 +80,7 @@ function writeJSONFile(filePath, value) {
 
 async function initDatabase() {
   if (!db) {
-    console.warn("DATABASE_URL not set: newsletter + feedback numbering use local JSON fallback.");
+    console.warn("DATABASE_URL not set: newsletter, feedback numbering and legal reports use local JSON fallback.");
     return;
   }
 
@@ -132,6 +137,24 @@ async function initDatabase() {
   `);
 
   await db.query(`CREATE INDEX IF NOT EXISTS idx_newsletter_campaign_created ON newsletter_campaigns(created_at DESC)`);
+
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS legal_content_reports (
+      id TEXT PRIMARY KEY,
+      reference TEXT UNIQUE NOT NULL,
+      location TEXT NOT NULL,
+      reason TEXT NOT NULL,
+      reporter_name TEXT NOT NULL,
+      reporter_email TEXT NOT NULL,
+      details TEXT,
+      good_faith BOOLEAN NOT NULL DEFAULT FALSE,
+      status TEXT NOT NULL DEFAULT 'received',
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+  await db.query(`CREATE INDEX IF NOT EXISTS idx_legal_reports_created ON legal_content_reports(created_at DESC)`);
+  await db.query(`CREATE INDEX IF NOT EXISTS idx_legal_reports_status ON legal_content_reports(status)`);
 
   console.log("DJ Toolkit Postgres persistence ready.");
 }
@@ -698,6 +721,13 @@ function defaultEventState(eventID) {
     mustPlay: [],
     doNotPlay: [],
     preferredGenres: [],
+    blockedGenres: [],
+    clientName: null,
+    clientEmail: null,
+    clientPhone: null,
+    expectedGuests: null,
+    eventNotes: null,
+    firstDance: null,
     musicDirection: "openFormat",
     timeline: [],
     genreVotes: {},
@@ -863,6 +893,41 @@ function feedbackRateAllowed(req) {
   return true;
 }
 
+function legalReportRateAllowed(req) {
+  const address = req.headers["x-forwarded-for"]?.toString().split(",")[0]?.trim()
+    || req.socket?.remoteAddress || "unknown";
+  const now = Date.now();
+  const current = (legalReportRateBuckets.get(address) || [])
+    .filter(ts => now - ts < LEGAL_REPORT_RATE_WINDOW_MS);
+  if (current.length >= MAX_LEGAL_REPORTS_PER_WINDOW) {
+    legalReportRateBuckets.set(address, current);
+    return false;
+  }
+  current.push(now);
+  legalReportRateBuckets.set(address, current);
+  return true;
+}
+
+function legalReportReference() {
+  const stamp = new Date().toISOString().slice(0, 10).replace(/-/g, "");
+  return `DJT-LEGAL-${stamp}-${crypto.randomBytes(4).toString("hex").toUpperCase()}`;
+}
+
+async function saveLegalContentReport(report) {
+  if (db) {
+    await db.query(`
+      INSERT INTO legal_content_reports
+        (id, reference, location, reason, reporter_name, reporter_email, details, good_faith, status, created_at, updated_at)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$10)
+    `, [report.id, report.reference, report.location, report.reason, report.name, report.email, report.details, report.goodFaith, report.status, report.createdAt]);
+    return;
+  }
+  const state = readJSONFile(legalReportStatePath, { reports: [] });
+  const reports = Array.isArray(state.reports) ? state.reports : [];
+  reports.push(report);
+  writeJSONFile(legalReportStatePath, { reports: reports.slice(-2000), updatedAt: new Date().toISOString() });
+}
+
 function validEmail(value) {
   const email = String(value || "").trim();
   return email.length >= 5
@@ -992,6 +1057,13 @@ function cleanPortalState(state) {
     mustPlay: arrayOfStrings(state.mustPlay),
     doNotPlay: arrayOfStrings(state.doNotPlay),
     preferredGenres: arrayOfStrings(state.preferredGenres, 30, 80),
+    blockedGenres: arrayOfStrings(state.blockedGenres, 30, 80),
+    clientName: String(state.clientName || "").trim().slice(0, 120) || null,
+    clientEmail: String(state.clientEmail || "").trim().slice(0, 320) || null,
+    clientPhone: String(state.clientPhone || "").trim().slice(0, 80) || null,
+    expectedGuests: state.expectedGuests == null || state.expectedGuests === "" ? null : (Number.isFinite(Number(state.expectedGuests)) ? Math.max(0, Math.min(100000, Math.round(Number(state.expectedGuests)))) : null),
+    eventNotes: String(state.eventNotes || "").trim().slice(0, 1200) || null,
+    firstDance: String(state.firstDance || "").trim().slice(0, 240) || null,
     timeline: cleanTimeline(state.timeline),
     updatedAt: state.updatedAt
   };
@@ -1755,6 +1827,80 @@ app.post("/api/feedback", async (req, res) => {
 });
 
 
+app.post("/api/legal/content-report", async (req, res) => {
+  res.set("Cache-Control", "no-store");
+  if (!legalReportRateAllowed(req)) {
+    return res.status(429).json({ error: "Zu viele Meldungen in kurzer Zeit. Bitte später erneut versuchen." });
+  }
+
+  const location = String(req.body?.location || "").trim().slice(0, 1000);
+  const reason = String(req.body?.reason || "").trim().slice(0, 5000);
+  const name = String(req.body?.name || "").trim().slice(0, 160);
+  const email = String(req.body?.email || "").trim().toLowerCase().slice(0, 254);
+  const details = String(req.body?.details || "").trim().slice(0, 5000) || null;
+  const goodFaith = req.body?.goodFaith === true;
+  const privacyAcknowledged = req.body?.privacyAcknowledged === true;
+
+  if (!location || location.length < 3) return res.status(400).json({ error: "Bitte den genauen Speicherort oder Link angeben." });
+  if (!reason || reason.length < 10) return res.status(400).json({ error: "Bitte die behauptete Rechtswidrigkeit ausreichend begründen." });
+  if (!name || name.length < 2) return res.status(400).json({ error: "Bitte einen Namen angeben." });
+  if (!validEmail(email)) return res.status(400).json({ error: "Bitte eine gültige E-Mail-Adresse angeben." });
+  if (!goodFaith) return res.status(400).json({ error: "Die Gutgläubigkeitserklärung ist erforderlich." });
+  if (!privacyAcknowledged) return res.status(400).json({ error: "Bitte die Datenschutzhinweise zur Kenntnis nehmen." });
+
+  const report = {
+    id: crypto.randomUUID(),
+    reference: legalReportReference(),
+    location,
+    reason,
+    name,
+    email,
+    details,
+    goodFaith: true,
+    status: "received",
+    createdAt: new Date().toISOString()
+  };
+
+  try {
+    await saveLegalContentReport(report);
+  } catch (error) {
+    console.error("legal content report persistence failed", error?.message || error);
+    return res.status(500).json({ error: "Die Meldung konnte nicht sicher gespeichert werden." });
+  }
+
+  const legalTo = String(process.env.LEGAL_REPORT_TO || process.env.FEEDBACK_TO || "info@dj-toolkit.com").trim();
+  let emailDelivered = false;
+  if (feedbackAPIKey()) {
+    const safeRef = escapeHTML(report.reference);
+    const safeLocation = escapeHTML(location);
+    const safeReason = escapeHTML(reason).replace(/\n/g, "<br>");
+    const safeName = escapeHTML(name);
+    const safeEmail = escapeHTML(email);
+    const safeDetails = details ? escapeHTML(details).replace(/\n/g, "<br>") : "—";
+    const base = publicBaseURL();
+    const operator = sendFeedbackEmail({
+      from: String(process.env.FEEDBACK_FROM || "DJ Toolkit <feedback@dj-toolkit.com>").trim(),
+      to: [legalTo],
+      reply_to: email,
+      subject: `DJ Toolkit Rechtsmeldung · ${report.reference}`,
+      html: `<h2>Rechtsmeldung ${safeRef}</h2><p><strong>Speicherort:</strong><br>${safeLocation}</p><p><strong>Begründung:</strong><br>${safeReason}</p><p><strong>Meldende Person:</strong> ${safeName} &lt;${safeEmail}&gt;</p><p><strong>Zusatzinfos:</strong><br>${safeDetails}</p><p><strong>Gutgläubigkeit:</strong> bestätigt</p><p><a href="${base}/rechtswidrige-inhalte.html">Meldeverfahren öffnen</a></p>`
+    });
+    const confirmation = sendFeedbackEmail({
+      from: String(process.env.FEEDBACK_FROM || "DJ Toolkit <feedback@dj-toolkit.com>").trim(),
+      to: [email],
+      reply_to: legalTo,
+      subject: `Eingangsbestätigung · ${report.reference}`,
+      html: `<p>Hallo ${safeName},</p><p>deine Meldung eines mutmaßlich rechtswidrigen Inhalts ist bei DJ Toolkit eingegangen.</p><p><strong>Referenz:</strong> ${safeRef}</p><p>Wir prüfen hinreichend konkrete Meldungen zeitnah. Bitte bewahre die Referenz für Rückfragen auf.</p><p>DJ Toolkit<br><a href="mailto:${escapeHTML(legalTo)}">${escapeHTML(legalTo)}</a></p>`
+    });
+    const results = await Promise.allSettled([operator, confirmation]);
+    emailDelivered = results[0].status === "fulfilled";
+    if (results[0].status === "rejected") console.warn("legal report notification failed", results[0].reason?.message || results[0].reason);
+    if (results[1].status === "rejected") console.warn("legal report confirmation failed", results[1].reason?.message || results[1].reason);
+  }
+
+  return res.status(201).json({ ok: true, reference: report.reference, emailDelivered });
+});
+
 app.post("/api/newsletter/subscribe", async (req, res) => {
   const website = String(req.body?.website || "").trim();
   if (website) return res.status(201).json({ ok: true });
@@ -2200,7 +2346,7 @@ app.get("/health", (_, res) => {
   res.set("Cache-Control", "no-store");
   res.json({
     ok: true,
-    version: "10.9.0",
+    version: "12.1.0",
     onlineAnalysis: true,
     catalogPreviewAudio: true,
     djMetadata: true,
@@ -2220,13 +2366,21 @@ app.get("/health", (_, res) => {
     newsletterConsentProof: true,
     newsletterPendingCleanupDays: NEWSLETTER_PENDING_RETENTION_DAYS,
     legalLinksInNewsletter: true,
+    dsaNoticeAndAction: true,
+    dsaElectronicContentReports: true,
     newsletterCampaignHistory: true,
     newsletterTestSend: true,
     newsletterUnsubscribe: true,
     postgresPersistence: Boolean(db),
     persistentFeedbackSequence: Boolean(db),
+    persistentLegalContentReports: Boolean(db),
     persistentNewsletterSubscribers: Boolean(db),
     resendHTTPSAPI: true,
+    cloudAccounts: true,
+    cloudSync: true,
+    appleSignIn: true,
+    passwordReset: true,
+    offlineMutationQueue: true,
     clientPortal: true,
     requestETA: true,
     multiDJHandover: true,
@@ -2768,6 +2922,13 @@ app.put("/api/events/:eventID/client-plan", (req, res) => {
     mustPlay: arrayOfStrings(req.body.mustPlay),
     doNotPlay: arrayOfStrings(req.body.doNotPlay),
     preferredGenres: arrayOfStrings(req.body.preferredGenres, 30, 80),
+    blockedGenres: arrayOfStrings(req.body.blockedGenres, 30, 80),
+    clientName: String(req.body.clientName || "").trim().slice(0, 120) || null,
+    clientEmail: String(req.body.clientEmail || "").trim().slice(0, 320) || null,
+    clientPhone: String(req.body.clientPhone || "").trim().slice(0, 80) || null,
+    expectedGuests: req.body.expectedGuests == null || req.body.expectedGuests === "" ? null : (Number.isFinite(Number(req.body.expectedGuests)) ? Math.max(0, Math.min(100000, Math.round(Number(req.body.expectedGuests)))) : null),
+    eventNotes: String(req.body.eventNotes || "").trim().slice(0, 1200) || null,
+    firstDance: String(req.body.firstDance || "").trim().slice(0, 240) || null,
     timeline: cleanTimeline(req.body.timeline)
   });
   res.json(cleanPortalState(next));
@@ -2921,8 +3082,17 @@ app.put("/api/events/:eventID/team", (req, res) => {
 });
 
 
+const cloudAuth = installCloudAuth({
+  app,
+  db,
+  storageDir: __dirname,
+  publicBaseURL: process.env.PUBLIC_BASE_URL || "https://dj-toolkit.com",
+  sendEmail: sendFeedbackEmail
+});
+
 initDatabase()
   .then(async () => {
+    await cloudAuth.init();
     await cleanupExpiredPendingNewsletterSubscribers();
     setInterval(() => {
       cleanupExpiredPendingNewsletterSubscribers().catch(error =>
