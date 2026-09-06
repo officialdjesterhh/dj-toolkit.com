@@ -776,7 +776,7 @@
       </button>
       <div id="statusMessage" class="status-message" role="status" aria-live="polite"></div>
 
-      <div class="privacy">🔒 <span>Dein Name ist optional. Gastdaten werden nicht öffentlich auf dieser Seite angezeigt. Ob und wann ein Wunsch gespielt wird, entscheidet der DJ.</span></div>
+      <div class="privacy">🔒 <span>Dein Name ist optional. Gastdaten werden nicht öffentlich auf dieser Seite angezeigt. Für Voting und Doppelstimmenkontrolle speichert dein Browser eine zufällige pseudonyme Kennung und deine Event-Auswahl lokal. Kein Werbe-Tracking. Details: <a href="/datenschutz.html" style="color:#8edfff">Datenschutz</a>. Ob und wann ein Wunsch gespielt wird, entscheidet der DJ.</span></div>
     </form>
 
     <section id="successCard" class="card success-card" aria-live="polite">
@@ -794,7 +794,7 @@
 
     <footer class="footer">
       <span>Powered by <strong>DJ Toolkit</strong></span>
-      <span><a href="/impressum.html" style="color:inherit;text-decoration:none">Impressum</a> · <a href="/datenschutz.html" style="color:inherit;text-decoration:none">Datenschutz</a> · <a href="/agb.html" style="color:inherit;text-decoration:none">AGB</a></span>
+      <span><a href="/impressum.html" style="color:inherit;text-decoration:none">Impressum</a> · <a href="/datenschutz.html" style="color:inherit;text-decoration:none">Datenschutz</a> · <a href="/agb.html" style="color:inherit;text-decoration:none">AGB</a> · <a href="/rechtswidrige-inhalte.html" style="color:inherit;text-decoration:none">Inhalte melden</a></span>
     </footer>
   </main>
 
@@ -835,10 +835,13 @@
   let selectedCatalog = null;
 
   const voterTokenKey = "djtoolkit-voter-token-v1";
-  let voterToken = localStorage.getItem(voterTokenKey);
-  if (!voterToken) {
-    voterToken = (crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`);
-    localStorage.setItem(voterTokenKey, voterToken);
+  function getVoterToken() {
+    let token = localStorage.getItem(voterTokenKey);
+    if (!token) {
+      token = (crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`);
+      localStorage.setItem(voterTokenKey, token);
+    }
+    return token;
   }
   const votedKey = `djtoolkit-voted-${eventID}`;
   const votedRequests = new Set(JSON.parse(localStorage.getItem(votedKey) || "[]"));
@@ -953,7 +956,7 @@
           const response = await fetch(`/api/events/${encodeURIComponent(eventID)}/genre-vote`, {
             method:"POST",
             headers:{"Content-Type":"application/json"},
-            body:JSON.stringify({ genre, voterToken })
+            body:JSON.stringify({ genre, voterToken: getVoterToken() })
           });
           if (!response.ok) throw new Error("vote failed");
           selectedGenre = genre;
@@ -1105,7 +1108,7 @@
           try {
             const response = await fetch(`/api/requests/${encodeURIComponent(requestID)}/vote`, {
               method: "POST", headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ voterToken })
+              body: JSON.stringify({ voterToken: getVoterToken() })
             });
             if (!response.ok) throw new Error("vote failed");
             const body = await response.json();

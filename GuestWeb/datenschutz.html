@@ -1,38 +1,110 @@
 <!doctype html>
-<html lang="de">
-<head>
+<html lang="de"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#05070d"><title>Datenschutz · DJ Toolkit</title>
-<link rel="icon" href="/djtoolkit-icon.png">
-<style>
-:root{color-scheme:dark;--bg:#04060b;--line:rgba(255,255,255,.08);--text:#f7f9ff;--muted:#aab6c9;--cyan:#21d7ff;--violet:#765bff;--magenta:#dd4dff;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text",Inter,system-ui,sans-serif}
+<meta name="robots" content="index,follow"><link rel="icon" href="/djtoolkit-icon.png">
+<style>:root{color-scheme:dark;--bg:#04060b;--line:rgba(255,255,255,.08);--text:#f7f9ff;--muted:#aab6c9;--cyan:#21d7ff;--violet:#765bff;--magenta:#dd4dff;--green:#49e5a1;--amber:#ffd36d;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text",Inter,system-ui,sans-serif}
 *{box-sizing:border-box}html,body{margin:0;min-height:100%;background:var(--bg);color:var(--text)}body{background:radial-gradient(circle at 8% -4%,rgba(33,215,255,.14),transparent 30rem),radial-gradient(circle at 96% 2%,rgba(221,77,255,.13),transparent 32rem),linear-gradient(180deg,#07101a,#04060b 55%,#030509);overflow-x:hidden}
 a{color:#8edfff}.wrap{width:min(960px,calc(100% - 34px));margin:auto}nav{min-height:82px;display:flex;align-items:center;justify-content:space-between;gap:18px}.brand{display:flex;align-items:center;gap:12px;text-decoration:none;color:#fff;font-weight:900;letter-spacing:.05em}.brand img{width:44px;height:44px;border-radius:13px;box-shadow:0 0 30px rgba(52,127,255,.28)}.navlinks{display:flex;gap:16px;align-items:center;flex-wrap:wrap;justify-content:flex-end}.navlinks a{text-decoration:none;color:#aeb8ca;font-size:12px;font-weight:750}.navlinks a:hover,.navlinks a.active{color:#fff}
-header{padding:58px 0 32px}.eyebrow{font-size:9px;font-weight:900;letter-spacing:.18em;color:#78e5ff}h1{font-size:clamp(46px,7vw,76px);line-height:.95;letter-spacing:-.058em;margin:12px 0 17px}.grad{background:linear-gradient(98deg,var(--cyan),#688cff 45%,#9e61ff 70%,var(--magenta));-webkit-background-clip:text;background-clip:text;color:transparent}.lead{color:#96a3b7;font-size:14px}
-.notice{margin-top:20px;padding:14px 16px;border:1px solid rgba(255,208,107,.18);background:rgba(255,208,107,.055);border-radius:15px;color:#d8c18d;font-size:11px;line-height:1.55}main{padding-bottom:65px}.card{padding:28px;border:1px solid var(--line);border-radius:26px;background:linear-gradient(145deg,rgba(15,24,40,.90),rgba(7,11,19,.92));box-shadow:0 24px 80px rgba(0,0,0,.18)}.card h2{font-size:24px;letter-spacing:-.035em;margin:30px 0 10px}.card h2:first-child{margin-top:0}.card h3{font-size:17px;margin:23px 0 8px}.card p,.card li{color:var(--muted);font-size:13px;line-height:1.75}.card ul{padding-left:20px}.card strong{color:#fff}.ph{display:inline-block;padding:2px 6px;border-radius:6px;background:rgba(255,209,109,.08);color:#ffd985;font-weight:850}
-.legal-links{display:flex;gap:9px;flex-wrap:wrap;margin-top:28px}.legal-links a{padding:9px 12px;border:1px solid var(--line);border-radius:999px;text-decoration:none;color:#aeb9cc;font-size:10px;font-weight:850}footer{padding:32px 0 50px;border-top:1px solid rgba(255,255,255,.055);display:flex;justify-content:space-between;gap:15px;flex-wrap:wrap;color:#667288;font-size:10px}footer a{text-decoration:none;color:#7e8ba1}
-@media(max-width:720px){nav{padding:16px 0;align-items:flex-start}.navlinks{gap:9px;max-width:58%}.navlinks a{font-size:10px}header{padding-top:38px}.card{padding:20px;border-radius:21px}footer{flex-direction:column}}
-</style></head>
-<body><div class="wrap">
-<nav><a class="brand" href="/"><img src="/djtoolkit-icon.png" alt="DJ Toolkit"><span>DJ TOOLKIT</span></a><div class="navlinks">
+header{padding:58px 0 32px}.eyebrow{font-size:9px;font-weight:900;letter-spacing:.18em;color:#78e5ff}h1{font-size:clamp(46px,7vw,76px);line-height:.95;letter-spacing:-.058em;margin:12px 0 17px}.grad{background:linear-gradient(98deg,var(--cyan),#688cff 45%,#9e61ff 70%,var(--magenta));-webkit-background-clip:text;background-clip:text;color:transparent}.lead{color:#96a3b7;font-size:14px;line-height:1.7}.notice{margin-top:20px;padding:14px 16px;border:1px solid rgba(255,208,107,.18);background:rgba(255,208,107,.055);border-radius:15px;color:#d8c18d;font-size:11px;line-height:1.65}.good{border-color:rgba(73,229,161,.20);background:rgba(73,229,161,.055);color:#a9e9cc}
+main{padding-bottom:65px}.card{padding:28px;border:1px solid var(--line);border-radius:26px;background:linear-gradient(145deg,rgba(15,24,40,.90),rgba(7,11,19,.92));box-shadow:0 24px 80px rgba(0,0,0,.18)}.card h2{font-size:24px;letter-spacing:-.035em;margin:30px 0 10px}.card h2:first-child{margin-top:0}.card h3{font-size:17px;margin:23px 0 8px}.card p,.card li{color:var(--muted);font-size:13px;line-height:1.75}.card ul,.card ol{padding-left:20px}.card strong{color:#fff}.card code{font-size:11px;color:#b8eaff}.ph{display:inline-block;padding:2px 6px;border-radius:6px;background:rgba(255,209,109,.08);color:#ffd985;font-weight:850}.legal-links{display:flex;gap:9px;flex-wrap:wrap;margin-top:28px}.legal-links a{padding:9px 12px;border:1px solid var(--line);border-radius:999px;text-decoration:none;color:#aeb9cc;font-size:10px;font-weight:850}footer{padding:32px 0 50px;border-top:1px solid rgba(255,255,255,.055);display:flex;justify-content:space-between;gap:15px;flex-wrap:wrap;color:#667288;font-size:10px}footer a{text-decoration:none;color:#7e8ba1}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.field{display:grid;gap:7px}.field.full{grid-column:1/-1}.field label{font-size:10px;color:#94a3b8;font-weight:800;letter-spacing:.03em}.field input,.field textarea,.field select{width:100%;border:1px solid rgba(255,255,255,.10);border-radius:13px;background:rgba(2,6,13,.75);color:#f5f8ff;padding:12px 13px;font:inherit;font-size:13px;outline:none}.field textarea{min-height:128px;resize:vertical}.field input:focus,.field textarea:focus{border-color:rgba(33,215,255,.45);box-shadow:0 0 0 3px rgba(33,215,255,.07)}.check{display:flex;gap:10px;align-items:flex-start;color:#aab6c9;font-size:12px;line-height:1.6}.check input{margin-top:3px}.submit{margin-top:14px;border:0;border-radius:14px;padding:13px 18px;background:linear-gradient(90deg,#168fff,#5c6cff,#b04cff);color:white;font-weight:900;cursor:pointer}.submit:disabled{opacity:.55;cursor:wait}.status{display:none;margin-top:14px;padding:12px 14px;border-radius:13px;font-size:12px;line-height:1.55}.status.show{display:block}.status.ok{background:rgba(73,229,161,.07);border:1px solid rgba(73,229,161,.2);color:#9ce6c4}.status.err{background:rgba(255,92,112,.07);border:1px solid rgba(255,92,112,.22);color:#ffadb8}
+@media(max-width:720px){nav{padding:16px 0;align-items:flex-start}.navlinks{gap:9px;max-width:58%}.navlinks a{font-size:10px}header{padding-top:38px}.card{padding:20px;border-radius:21px}footer{flex-direction:column}.form-grid{grid-template-columns:1fr}}</style></head>
+<body><div class="wrap"><nav><a class="brand" href="/"><img src="/djtoolkit-icon.png" alt="DJ Toolkit"><span>DJ TOOLKIT</span></a><div class="navlinks">
 <a href="/">Startseite</a><a href="/faq.html">FAQ</a><a href="/impressum.html">Impressum</a><a href="/datenschutz.html" class="active">Datenschutz</a><a href="/agb.html">AGB</a>
 </div></nav>
-<header><div class="eyebrow">RECHTLICHES · DATENSCHUTZ</div><h1>Datenschutz.<br><span class="grad">DJ Toolkit.</span></h1><p class="lead">Stand: 5. September 2026</p>
-</header>
+<header><div class="eyebrow">RECHTLICHES · DATENSCHUTZ</div><h1>Datenschutz.<br><span class="grad">DJ Toolkit.</span></h1><p class="lead">Stand: 6. September 2026 · Website, GuestWeb, Kundenportal, Account, Cloud und App</p></header>
 <main><article class="card">
-<h2>1. Verantwortlicher</h2><p><strong>DJ Toolkit</strong><br>Sebastian Engeln<br>Ohkampring 51<br>22339 Hamburg<br>E-Mail: <a href="mailto:info@dj-toolkit.com">info@dj-toolkit.com</a></p>
-<h2>2. Allgemeine Hinweise</h2><p>Wir verarbeiten personenbezogene Daten nur, soweit dies für den Betrieb von DJ Toolkit, die Bearbeitung von Anfragen und Feedback, die Bereitstellung von Event-/GuestWeb-Funktionen oder den Versand des Newsletters erforderlich ist.</p>
-<h2>3. Hosting und Server-Logs</h2><p>Die Website und Backend-Dienste werden über <strong>Render</strong> bereitgestellt. Beim Aufruf können technisch erforderliche Verbindungsdaten verarbeitet werden, etwa IP-Adresse, Datum und Uhrzeit, aufgerufene Ressource, Referrer, Browser-/Geräteinformationen und technische Fehlerdaten. Die Verarbeitung dient dem sicheren und stabilen Betrieb des Dienstes und erfolgt grundsätzlich auf Grundlage von Art. 6 Abs. 1 lit. f DSGVO; soweit Vertrags- oder vorvertragliche Zwecke betroffen sind, kann Art. 6 Abs. 1 lit. b DSGVO einschlägig sein.</p>
-<h2>4. Feedback und Anregungen</h2><p>Über das Feedback-Formular verarbeiten wir E-Mail-Adresse, Nachricht, Kategorie und – sofern freiwillig angegeben – Name, Mobilnummer und Bewertung. Zusätzlich wird eine fortlaufende Feedback-Referenz erzeugt. Die Verarbeitung erfolgt zur Bearbeitung und Zuordnung der Rückmeldung. Rechtsgrundlage ist Art. 6 Abs. 1 lit. b DSGVO, soweit Vertrags-/vorvertragliche Maßnahmen betroffen sind, im Übrigen Art. 6 Abs. 1 lit. f DSGVO.</p>
-<h2>5. Newsletter und Double-Opt-in</h2><p>Für den Newsletter verarbeiten wir E-Mail-Adresse, optional Namen, gewählte Themen, Anmelde-/Bestätigungsstatus sowie Zeitpunkte der Anmeldung, Bestätigung und Abmeldung. Die Anmeldung wird erst nach Bestätigung des zugesandten Links aktiviert. Rechtsgrundlage ist deine Einwilligung gemäß Art. 6 Abs. 1 lit. a DSGVO. Du kannst sie jederzeit über den Abmeldelink mit Wirkung für die Zukunft widerrufen.</p>
-<h2>6. E-Mail-Versand</h2><p>Für Transaktions- und Newsletter-E-Mails wird derzeit <strong>Resend</strong> eingesetzt. Feedback-Nachrichten können außerdem an das für DJ Toolkit eingerichtete E-Mail-Postfach weitergeleitet werden. Dabei werden nur die für den jeweiligen Versand erforderlichen Daten übermittelt.</p>
-<h2>7. Datenbank</h2><p>Newsletter-Anmeldungen, Double-Opt-in-Status, Abmeldungen und Versandhistorien werden in einer PostgreSQL-Datenbank auf Render gespeichert. Die Newsletter-Verwaltung ist durch einen Admin-Token geschützt.</p>
-<h2>8. GuestWeb, Requests und Event-Funktionen</h2><p>Bei GuestWeb- und Event-Funktionen können Event-ID, Musikwünsche, Abstimmungen, Genres und technische Verbindungsdaten verarbeitet werden. Die Verarbeitung erfolgt zur Bereitstellung der angeforderten Funktionen und je nach Nutzungskontext auf Grundlage von Art. 6 Abs. 1 lit. b oder lit. f DSGVO.</p>
-<h2>9. Drittlandübermittlungen</h2><p>Soweit eingesetzte Dienstleister Daten außerhalb des Europäischen Wirtschaftsraums verarbeiten, erfolgt eine Übermittlung nur unter Beachtung der gesetzlichen Voraussetzungen, insbesondere auf Grundlage eines Angemessenheitsbeschlusses oder geeigneter Garantien nach Art. 46 DSGVO, soweit erforderlich.</p>
-<h2>10. Cookies und Browser-Speicher</h2><p>Auf der öffentlich zugänglichen Landingpage werden derzeit keine eigenen Analyse- oder Marketing-Cookies eingesetzt. Technisch erforderliche Browser-Speicherungen können für ausdrücklich gewünschte Funktionen verwendet werden. In der internen Newsletter-Verwaltung werden beispielsweise ein Sitzungs-Token im sessionStorage und lokale Newsletter-Entwürfe gespeichert.</p>
-<h2>11. Speicherdauer</h2><p>Daten werden nur so lange gespeichert, wie dies für den jeweiligen Zweck erforderlich ist oder gesetzliche Pflichten bestehen. Newsletterdaten werden grundsätzlich bis zur Abmeldung verarbeitet; Nachweise einer Einwilligung können im erforderlichen Umfang länger aufbewahrt werden. Feedbackdaten werden nach Abschluss der Bearbeitung gelöscht oder anonymisiert, sofern keine berechtigten oder gesetzlichen Gründe für eine weitere Speicherung bestehen.</p>
-<h2>12. Rechte betroffener Personen</h2><p>Du hast im Rahmen der gesetzlichen Voraussetzungen insbesondere Rechte auf Auskunft, Berichtigung, Löschung, Einschränkung, Datenübertragbarkeit und Widerspruch. Einwilligungen können jederzeit mit Wirkung für die Zukunft widerrufen werden. Außerdem besteht ein Beschwerderecht bei einer zuständigen Datenschutz-Aufsichtsbehörde.</p>
-<h2>13. Sicherheit</h2><p>Wir setzen angemessene technische und organisatorische Maßnahmen ein, um personenbezogene Daten gegen Verlust, Missbrauch und unberechtigten Zugriff zu schützen.</p>
-<h2>14. Änderungen</h2><p>Diese Datenschutzerklärung wird angepasst, wenn sich Funktionen, Dienstleister oder rechtliche Anforderungen ändern.</p><div class="legal-links"><a href="/impressum.html">Impressum</a><a href="/datenschutz.html">Datenschutz</a><a href="/agb.html">AGB</a><a href="/">Zur Startseite</a></div></article></main>
-<footer><span>© DJ Toolkit · dj-toolkit.com</span><span><a href="/impressum.html">Impressum</a> · <a href="/datenschutz.html">Datenschutz</a> · <a href="/agb.html">AGB</a></span></footer>
+<h2>1. Verantwortlicher und Geltungsbereich</h2>
+<p>Verantwortlich für die Verarbeitung personenbezogener Daten im Sinne der Datenschutz-Grundverordnung (DSGVO) ist:</p>
+<p><strong>DJ Toolkit – Sebastian Engeln</strong><br>Ohkampring 51<br>22339 Hamburg<br>Deutschland<br>E-Mail: <a href="mailto:info@dj-toolkit.com">info@dj-toolkit.com</a></p>
+<p>Diese Hinweise gelten für <strong>dj-toolkit.com</strong>, GuestWeb, Kunden-/Eventportal, Account- und Cloud-Funktionen sowie die DJ-Toolkit-App, soweit DJ Toolkit selbst über Zwecke und Mittel der Verarbeitung entscheidet.</p>
+
+<h2>2. Rechtsgrundlagen</h2>
+<p>Je nach Funktion verarbeiten wir Daten insbesondere auf Grundlage von Art. 6 Abs. 1 lit. b DSGVO (Vertrag bzw. vorvertragliche Maßnahmen), Art. 6 Abs. 1 lit. c DSGVO (rechtliche Pflichten), Art. 6 Abs. 1 lit. f DSGVO (berechtigte Interessen, insbesondere Betrieb, Sicherheit, Missbrauchsabwehr und Verbesserung des Dienstes) sowie – wenn ausdrücklich eingeholt – Art. 6 Abs. 1 lit. a DSGVO (Einwilligung). Einwilligungen können mit Wirkung für die Zukunft widerrufen werden.</p>
+
+<h2>3. Hosting, Bereitstellung und Serverprotokolle</h2>
+<p>Website und Backend können über <strong>Render</strong> in der Region Frankfurt/EU betrieben werden. Beim Abruf werden technisch erforderliche Verbindungsdaten verarbeitet, etwa IP-Adresse, Zeitpunkt, aufgerufene Ressource, HTTP-Status sowie Browser-/Geräteinformationen, soweit diese beim Hosting anfallen. Zweck sind sichere Auslieferung, Fehleranalyse und Missbrauchsabwehr. Rechtsgrundlage ist Art. 6 Abs. 1 lit. f DSGVO.</p>
+<p>Soweit Dienstleister als Auftragsverarbeiter eingesetzt werden, erfolgt dies auf Grundlage eines Vertrags nach Art. 28 DSGVO.</p>
+
+<h2>4. DJ-Toolkit-Account, Registrierung und Login</h2>
+<p>Bei einem E-Mail-Account verarbeiten wir E-Mail-Adresse, optional den Namen, Account-ID, Zeitstempel sowie für die Authentifizierung einen mit <strong>scrypt</strong> abgeleiteten Passwort-Hash mit individuellem Salt. Das Klartext-Passwort wird nicht gespeichert. Nach erfolgreichem Login wird eine zufällige Sitzung erzeugt; serverseitig wird nur ein Hash des Sitzungstokens gespeichert. Die Standardlaufzeit einer Sitzung beträgt derzeit 30 Tage, sofern sie nicht früher abgemeldet oder ungültig wird.</p>
+<p>Rechtsgrundlage ist Art. 6 Abs. 1 lit. b DSGVO; Sicherheitsprotokolle und Missbrauchsabwehr beruhen ergänzend auf Art. 6 Abs. 1 lit. f DSGVO.</p>
+
+<h2>5. „Mit Apple anmelden“ und Apple-Dienste</h2>
+<p>Bei „Mit Apple anmelden“ erhält DJ Toolkit von Apple eine verifizierbare Identitätsinformation. Wir verarbeiten insbesondere die von Apple bereitgestellte stabile Nutzerkennung (<em>sub</em>) sowie – soweit Apple bzw. der Nutzer sie übermittelt – E-Mail-Adresse und Name. Das Identity Token wird serverseitig anhand der öffentlichen Apple-Signaturschlüssel sowie Aussteller, Zielgruppe und Ablauf geprüft.</p>
+<p>Die App kann außerdem Apple-Funktionen wie MusicKit/ShazamKit und – nach Freigabe in iOS – Mikrofon bzw. Mediathek nutzen. Betriebssystemberechtigungen werden erst nach der jeweiligen Nutzerfreigabe genutzt. Für die Verarbeitung durch Apple gelten ergänzend Apples eigene Datenschutzinformationen. Rechtsgrundlage für die DJ-Toolkit-seitige Verarbeitung ist Art. 6 Abs. 1 lit. b DSGVO.</p>
+
+<h2>6. Cloud-Synchronisierung und Backups</h2>
+<p>Wenn Cloud Sync aktiviert bzw. ein Account verwendet wird, kann ein versionierter Snapshot der DJ-Toolkit-Daten gespeichert werden. Je nach Nutzung kann dieser Event-, Kunden-, Musikwunsch-, Set-/Statistik-, Bibliotheks- und Einstellungsdaten enthalten. Die Cloud-Version dient der Synchronisierung zwischen Geräten, Wiederherstellung und Konfliktvermeidung.</p>
+<p>Bitte trage Daten anderer Personen nur ein, wenn dafür eine ausreichende Rechtsgrundlage bzw. Berechtigung besteht. Bei geschäftlicher Nutzung kann der DJ bzw. das Unternehmen für bestimmte Kundendaten selbst datenschutzrechtlich Verantwortlicher sein; je nach Rollenverteilung kann zusätzlich eine Vereinbarung zur Auftragsverarbeitung erforderlich sein.</p>
+
+<h2>7. Passwort-Reset</h2>
+<p>Für einen Passwort-Reset verarbeiten wir die E-Mail-Adresse, eine zufällige Reset-Kennung in gehashter Form sowie Zeitstempel. Ein Reset-Link ist standardmäßig 30 Minuten gültig und kann nur einmal verwendet werden. Der Versand erfolgt per E-Mail über Resend.</p>
+
+<h2>8. GuestWeb: Musikwünsche, Votes und Eventdaten</h2>
+<p>Beim Absenden eines Musikwunsches werden mindestens Titel und Interpret verarbeitet. Optional können Gastname und Nachricht übermittelt werden. Zusätzlich verarbeitet das System technische Metadaten für Spam-/Rate-Limits, Duplikat-Erkennung, Voting, Status und Eventzuordnung. Der DJ entscheidet selbst, ob und wann ein Wunsch gespielt wird.</p>
+<p>Für Voting erzeugt der Browser eine zufällige pseudonyme Kennung. Im Backend wird daraus für die Doppelstimmenkontrolle ein Hash verwendet. Dadurch soll verhindert werden, dass dieselbe Browserkennung denselben Wunsch unbegrenzt hochvotet.</p>
+<p>Rechtsgrundlage ist Art. 6 Abs. 1 lit. b DSGVO, soweit die Funktion auf Wunsch des Nutzers bereitgestellt wird, und ergänzend Art. 6 Abs. 1 lit. f DSGVO für Missbrauchsabwehr und stabile Eventabläufe.</p>
+
+<h2>9. Kunden-/Eventportal</h2>
+<p>Im Kundenportal können unter anderem Name, E-Mail-Adresse, Telefonnummer, erwartete Gästezahl, Eventnotizen, Ablaufpunkte, Eröffnungstanz, bevorzugte bzw. gesperrte Genres sowie Must-Play-/No-Go-Titel verarbeitet werden. Pflichtfelder werden im jeweiligen Formular gekennzeichnet; andere Angaben sind freiwillig. Der Portal-Link enthält einen zufälligen Zugriffsschlüssel und sollte nur an berechtigte Personen weitergegeben werden.</p>
+<p>Rechtsgrundlage ist regelmäßig Art. 6 Abs. 1 lit. b DSGVO; bei Verarbeitung im Auftrag eines DJs/Unternehmens kann dessen Rechtsgrundlage maßgeblich sein.</p>
+
+<h2>10. Musikkatalog-Suche und Apple-Inhalte</h2>
+<p>Für die Titelsuche sendet das DJ-Toolkit-Backend Suchbegriffe an die öffentliche Apple/iTunes-Suche. Ergebnisse können Titel, Interpret, Album, Store-Link, Vorschau-URL und Artwork-URL enthalten und werden kurzfristig zwischengespeichert. Werden Apple-gehostete Bilder oder Audio-Vorschauen im Browser geladen, kann die Verbindung direkt zu Apple hergestellt werden; dabei können insbesondere IP-Adresse und technische Abrufdaten an Apple übermittelt werden.</p>
+<p>Die Suche wird nur ausgelöst, wenn der Nutzer diese Funktion verwendet. Rechtsgrundlage ist Art. 6 Abs. 1 lit. b DSGVO; soweit technisch erforderliche Abrufdaten betroffen sind, ergänzend Art. 6 Abs. 1 lit. f DSGVO.</p>
+
+<h2>11. Feedback und Support</h2>
+<p>Wenn du Feedback sendest, verarbeiten wir die von dir angegebenen Kontaktdaten, Kategorie, Bewertung, Nachricht und technische Angaben, soweit diese mitgesendet werden. Jede Rückmeldung erhält eine Referenznummer. Zweck sind Bearbeitung, Rückfragen, Produktverbesserung und Missbrauchsabwehr. Rechtsgrundlage ist Art. 6 Abs. 1 lit. b bzw. lit. f DSGVO.</p>
+
+<h2>12. Newsletter und Double-Opt-in</h2>
+<p>Für den Newsletter verarbeiten wir E-Mail-Adresse, optional Name, ausgewählte Interessen, Einwilligungszeitpunkt, Einwilligungstext/-version, Status sowie Bestätigungs- und Abmeldekennungen. Die Anmeldung wird erst nach Klick auf den Double-Opt-in-Link aktiv. Rechtsgrundlage ist Art. 6 Abs. 1 lit. a DSGVO. Du kannst die Einwilligung jederzeit über den Abmeldelink widerrufen.</p>
+<p>Nicht bestätigte Newsletter-Anmeldungen werden derzeit nach 14 Tagen bereinigt.</p>
+
+<h2>13. E-Mail-Dienstleister</h2>
+<p>Transaktions-, Feedback-, Passwort-Reset- und Newsletter-E-Mails können über <strong>Resend</strong> versendet werden. Das Postfach <strong>info@dj-toolkit.com</strong> wird über Microsoft 365 in Verbindung mit dem Domain-/E-Mail-Anbieter GoDaddy genutzt. Die Anbieter verarbeiten die für Bereitstellung und Zustellung erforderlichen Daten nach den jeweils vereinbarten Datenschutz- und Auftragsverarbeitungsbedingungen.</p>
+
+<h2>14. Cookies und Browser-Speicher (§ 25 TDDDG)</h2>
+<p>Auf der öffentlichen Landingpage wird derzeit kein eigenes Werbe- oder Reichweiten-Tracking eingesetzt und es werden keine Marketing-Cookies durch DJ Toolkit gesetzt.</p>
+<p>GuestWeb nutzt jedoch <strong>localStorage</strong> für ausdrücklich gewünschte Eventfunktionen: eine zufällige Voting-Kennung, die erst bei der tatsächlichen Nutzung einer Abstimmungsfunktion erzeugt wird, (<code>djtoolkit-voter-token-v1</code>), die Liste bereits bewerteter Wünsche pro Event (<code>djtoolkit-voted-…</code>) sowie die eigene Genre-Stimme (<code>djtoolkit-genre-…</code>). Diese Speicherungen dienen der Voting-Funktion, Doppelstimmenkontrolle und Wiederherstellung der Nutzerwahl. Sie werden nicht für personalisierte Werbung oder websiteübergreifendes Tracking verwendet.</p>
+<p>In der internen Newsletter-Verwaltung wird der Admin-Token für die laufende Browser-Sitzung im <strong>sessionStorage</strong> und ein Newsletter-Entwurf lokal im Browser gespeichert. Für ausschließlich technisch notwendige Speicherung zur Bereitstellung eines ausdrücklich gewünschten digitalen Dienstes stützen wir uns auf § 25 Abs. 2 Nr. 2 TDDDG. Sollte künftig nicht notwendiges Tracking hinzukommen, wird vor dessen Aktivierung eine geeignete Einwilligungslösung eingesetzt.</p>
+
+<h2>15. Empfänger und Auftragsverarbeiter</h2>
+<p>Empfänger können – abhängig von der genutzten Funktion – Hosting-/Infrastrukturanbieter, E-Mail-Dienstleister und Apple-Dienste sein. Interne Daten werden nur den Personen zugänglich gemacht, die sie für Betrieb, Support, Eventdurchführung oder Administration benötigen. Eine Weitergabe zu eigenen Werbezwecken Dritter erfolgt nicht allein deshalb, weil du DJ Toolkit nutzt.</p>
+
+<h2>16. Drittlandübermittlungen</h2>
+<p>Einzelne Anbieter, insbesondere Apple, Microsoft, GoDaddy oder Resend, können Daten auch außerhalb des Europäischen Wirtschaftsraums verarbeiten. Soweit erforderlich, erfolgt die Übermittlung auf Grundlage eines Angemessenheitsbeschlusses (einschließlich EU-U.S. Data Privacy Framework, sofern der jeweilige Empfänger zertifiziert ist) und/oder geeigneter Garantien wie EU-Standardvertragsklauseln. Details ergeben sich aus den Verträgen und Datenschutzhinweisen der jeweiligen Anbieter.</p>
+
+<h2>17. Speicherdauer</h2>
+<p>Wir speichern personenbezogene Daten nur so lange, wie dies für den jeweiligen Zweck erforderlich ist oder gesetzliche Aufbewahrungspflichten bestehen. Aktuell gelten insbesondere:</p>
+<ul>
+<li>Account und Cloud-Snapshot: grundsätzlich bis zur Löschung des Accounts bzw. bis die Daten durch den Nutzer überschrieben oder gelöscht werden; gesetzliche Pflichten bleiben vorbehalten.</li>
+<li>Login-Sitzungen: standardmäßig bis zu 30 Tage, sofern nicht früher beendet.</li>
+<li>Passwort-Reset-Kennungen: standardmäßig 30 Minuten gültig; verbrauchte/abgelaufene Kennungen werden nicht mehr zur Anmeldung akzeptiert.</li>
+<li>Nicht bestätigte Newsletter-Anmeldungen: derzeit Bereinigung nach 14 Tagen.</li>
+<li>GuestWeb-, Event- und Kundenportal-Daten: während des Beta-/Eventbetriebs so lange, wie sie für Eventworkflow, Synchronisierung, Support, Sicherheit oder berechtigte Nachweise benötigt werden. Eine Löschung kann unter <a href="mailto:info@dj-toolkit.com">info@dj-toolkit.com</a> verlangt werden, soweit keine entgegenstehenden Gründe bestehen.</li>
+<li>DSA-/Rechtsmeldungen: entsprechend rechtlicher Nachweis- und Bearbeitungserfordernisse; nicht länger als für Bearbeitung und Compliance erforderlich.</li>
+</ul>
+
+<h2>18. Automatisierte Prüfungen und DJ Copilot</h2>
+<p>DJ Toolkit kann automatische Regeln für Rate-Limits, Spam-/Duplikat-Erkennung, Track-/Genrezuordnung, Scores und Empfehlungen einsetzen. Diese Funktionen unterstützen den Betrieb und den DJ. Es findet dadurch keine ausschließlich automatisierte Entscheidung mit rechtlicher oder ähnlich erheblicher Wirkung im Sinne von Art. 22 DSGVO statt. Insbesondere entscheidet der DJ selbst über Musikwünsche und Setgestaltung.</p>
+
+<h2>19. Meldung mutmaßlich rechtswidriger Inhalte</h2>
+<p>Über das <a href="/rechtswidrige-inhalte.html">Melde- und Abhilfeformular</a> werden die zur Prüfung einer Meldung erforderlichen Angaben verarbeitet: Begründung, genauer Speicherort/Link, Name, E-Mail-Adresse, Gutgläubigkeitserklärung sowie optionale Zusatzinformationen. Zweck sind Prüfung, Kommunikation, Dokumentation und Erfüllung gesetzlicher Pflichten. Rechtsgrundlage ist Art. 6 Abs. 1 lit. c DSGVO, soweit eine gesetzliche Pflicht besteht, sonst Art. 6 Abs. 1 lit. f DSGVO.</p>
+
+<h2>20. Deine Rechte</h2>
+<p>Im Rahmen der gesetzlichen Voraussetzungen hast du Rechte auf Auskunft (Art. 15 DSGVO), Berichtigung (Art. 16), Löschung (Art. 17), Einschränkung (Art. 18), Datenübertragbarkeit (Art. 20) und Widerspruch gegen Verarbeitungen auf Grundlage berechtigter Interessen (Art. 21). Einwilligungen können jederzeit für die Zukunft widerrufen werden.</p>
+<p>Anfragen bitte an <a href="mailto:info@dj-toolkit.com">info@dj-toolkit.com</a>. Zur Vermeidung unberechtigter Zugriffe können wir einen angemessenen Identitätsnachweis verlangen.</p>
+
+<h2>21. Beschwerderecht</h2>
+<p>Du kannst dich bei einer Datenschutz-Aufsichtsbehörde beschweren. Für den Betreiber in Hamburg ist insbesondere zuständig:</p>
+<p><strong>Der Hamburgische Beauftragte für Datenschutz und Informationsfreiheit (HmbBfDI)</strong><br>Ludwig-Erhard-Str. 22, 7. OG<br>20459 Hamburg<br>Telefon: 040 42854-4040<br>E-Mail: <a href="mailto:mailbox@datenschutz.hamburg.de">mailbox@datenschutz.hamburg.de</a><br>Website: <a href="https://datenschutz-hamburg.de">datenschutz-hamburg.de</a></p>
+
+<h2>22. Datensicherheit</h2>
+<p>Wir setzen angemessene technische und organisatorische Maßnahmen ein. Dazu gehören insbesondere Transportverschlüsselung über HTTPS im Produktivbetrieb, gehashte Passwörter und Sitzungstokens, zufällige Zugriffsschlüssel, Eingabevalidierung, Rate-Limits und rollen-/tokenbasierte Zugriffe. Kein Onlinedienst kann absolute Sicherheit garantieren.</p>
+
+<h2>23. Änderungen dieser Datenschutzerklärung</h2>
+<p>Diese Datenschutzerklärung wird angepasst, wenn sich Funktionen, Dienstleister, Speicherdauern oder rechtliche Anforderungen ändern. Die jeweils aktuelle Fassung ist auf dieser Seite abrufbar.</p>
+<div class="legal-links"><a href="/impressum.html">Impressum</a><a href="/datenschutz.html">Datenschutz</a><a href="/agb.html">AGB</a><a href="/rechtswidrige-inhalte.html">Rechtswidrige Inhalte melden</a><a href="/">Zur Startseite</a></div></article></main><footer><span>© DJ Toolkit · dj-toolkit.com</span><span><a href="/impressum.html">Impressum</a> · <a href="/datenschutz.html">Datenschutz</a> · <a href="/agb.html">AGB</a> · <a href="/rechtswidrige-inhalte.html">Inhalte melden</a></span></footer>
 </div></body></html>
